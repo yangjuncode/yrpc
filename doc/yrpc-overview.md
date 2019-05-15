@@ -19,3 +19,85 @@
 - 通信通道多样化,tcp/udp/websocket/webrtc/kcp/ycp等,看实际的需要
 - yrpc的协议采用protobuf描述
 
+
+
+## 协议说明
+
+ yrpc作为grpc的代理,使用的语法当然是protobuf的语法,以下为例子:
+
+```protobuf
+// The demo service definition.
+service demo {
+  // 单次调用
+  rpc SayHello (Request) returns (Reply) {}
+  //Ynocare调用
+  rpc SayHelloNocare (Request) returns (yrpc.Ynocare) {}
+  // 客户端流
+  rpc SayHelloCliStream (stream Request) returns (Reply) {}
+  // 服务端流
+  rpc SayHelloServStream (Request) returns (stream Reply) {}
+  //双向流
+  rpc SayHelloBidiStream (stream Request) returns (stream Reply) {}
+  
+}
+
+// The request message containing the user's name.
+message Request {
+  string name = 1;
+}
+
+// The response message containing the greetings
+message Reply {
+  string message = 1;
+}
+```
+
+
+
+yrpc的底层数据包格式如下:
+
+```protobuf
+syntax = "proto3";
+package yrpc;
+
+option optimize_for = LITE_RUNTIME;
+
+//系统中所有的消息交互底层都以此为包装,这是yrpc中的最小交互数据包
+message ypacket {
+
+  //整个yrpc packet的长度，不包含此字段
+  //虽然这个长度可以很长，但是为了避免大包阻塞其它操作，通常都要限制长度,采用分包多发机制
+  //当使用基于包的传输通道时(udp/kcp/websocket)，此值可能为0(此时长度为收到的整个包的长度)
+  //当填写了值时,为proto编码的长度-5
+  fixed32 len = 1;
+
+  // rpc command,rpc的命令和option
+  // b7-b0(uint8):为rpc命令
+  // b12-b8:body压缩方式 0:无压缩 1:lz4 2:zlib inflate/deflate
+  // b15-b13:optbin压缩方式 0:无压缩 1:lz4 2:zlib inflate/deflate
+  // b31-b16: not used yet
+  fixed32 cmd = 2;
+
+  //rpc call id,给分辨不同的rpc调用使用,调用方增1循环使用
+  uint32 cid=3;
+
+  // rpc no,从0开始增1使用,用于区分收到重复的包,特别是udp的情况下
+  uint32 no = 4;
+
+  // response code
+  sint32 res = 5;
+
+  // packet body
+  bytes body = 10;
+
+  // optional str parameter,额外的信息,一般不会有,有些特殊命令里面可能用到
+  string optstr = 11;
+
+  // optional binary parameter,额外的信息,一般不会有,有些特殊命令里面可能用到
+  bytes optbin = 12;
+  
+  //optional meta info,key=meta[i],value=meta[i+1]
+  repeated string meta=13;
+  
+};
+```
