@@ -4,3 +4,8 @@ stages:
 lint:
   stage: test
   script:
+    - echo lint
+  tags:
+    - linux
+  only:
+    - merge_request
