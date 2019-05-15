@@ -84,6 +84,7 @@ message ypacket {
   uint32 cid=3;
 
   // rpc no,从0开始增1使用,用于区分收到重复的包,特别是udp的情况下
+  // 每一个rpc 流式调用有其自己的序号流,从0开始
   uint32 no = 4;
 
   // response code
