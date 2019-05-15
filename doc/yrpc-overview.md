@@ -16,6 +16,6 @@
 - 制订一个相对简单地协议,把yrpc实现为grpc的前端代理
 - 采用和grpc同样的语法,同样的语义,单次调用,流式调用等
 - 增加消息系统的api(nats,pulsar), 给系统的交互增加方便
-- 通信通道多样化,tcp/udp/websockett/webrtc/kcp/ycp等,看实际的需要
+- 通信通道多样化,tcp/udp/websocket/webrtc/kcp/ycp等,看实际的需要
 - yrpc的协议采用protobuf描述
 
