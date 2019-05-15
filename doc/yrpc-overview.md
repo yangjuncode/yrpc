@@ -28,6 +28,8 @@
 ```protobuf
 // The demo service definition.
 service demo {
+  //service version
+  option (yrpc).ver="1.2";
   // 单次调用
   rpc SayHello (Request) returns (Reply) {}
   //Ynocare调用
@@ -101,3 +103,8 @@ message ypacket {
   
 };
 ```
+
+
+
+## yrpc交互流程
+
