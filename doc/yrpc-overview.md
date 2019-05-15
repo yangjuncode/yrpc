@@ -65,7 +65,7 @@ package yrpc;
 option optimize_for = LITE_RUNTIME;
 
 //系统中所有的消息交互底层都以此为包装,这是yrpc中的最小交互数据包
-message ypacket {
+message Ypacket {
 
   //整个yrpc packet的长度，不包含此字段
   //虽然这个长度可以很长，但是为了避免大包阻塞其它操作，通常都要限制长度,采用分包多发机制
@@ -108,4 +108,91 @@ message ypacket {
 
 
 ## yrpc交互流程
+
+
+
+###  一次调用
+
+  - Ypacket.cmd=1,
+  - api版本放在Ypacket.meta里面key="ver", value="1.2",没有特定版本时不用放,有些api是不需要理会版本的
+  - Ypacket.optstr=grpc.method签名(/pkg.service/method)
+  - Ypacket.body=Request
+  - Ypacket.cid为本次rpc调用的唯一标识
+  - client端将上述数据打包后发送到服务器端
+  - server端收到调用后进行处理,处理结果返回如下:
+    - Ypacket.cid与调用者的相同
+    - 正常流程
+      - Ypacket.body=Reply
+      - Ypacket.res=0
+      - Ypacket.cmd=1
+    - 出错流程
+      - Ypacket.res!=0
+      - Ypacket.ostr=err str
+      - Ypacket.cmd=4
+- 对于没有数据的参数或者返回值,使用Yempty
+
+#### 返回值为Ynocare的单次调用
+
+- ynocare表示只调用,不关注成功和结果,类似udp
+- Ypacket.cmd=2
+- 只有发送过程,没有回应
+- 对于需要没有数据的回应不能使用Ynocare,应该使用Yempty
+
+### 服务端流
+
+- 按照一次调用先发送调用请求,Ypacket.cmd=7
+- server端收到调用后进行处理
+- 如果有错误,则返回Ypacket.cmd=4
+- 正常返回数据时
+  - Ypacket.cmd=12
+  - Ypacket.cid为调用时的值
+  - Ypacket.no从0开始计数发送
+  - Ypacket.body=Replay
+- client收到cmd=12时,需要回应收到数据包
+  - Ypacket.cmd=12
+  - Ypacket.cid跟第一次一样
+  - Ypacket.no=server端的Ypacket.no
+- server端结束时发送命令Ypacket.cmd=13
+  - Ypacket.body可能为空
+
+
+### 客户端流
+
+- 按照一次调用先发送调用请求,Ypacket.cmd=3
+- 从第二个数据包开始,Ypacket.cmd=5,Ypacket.ostr不需要填写method签名
+- Ypacket.no以0开始标识每一个请求包
+- server收到后回应收到调用数据
+  - Ypacket.cmd=5
+  - Ypacket.no=client发送的Ypacket.no
+  - Ypacket.cid=client发送的cid
+- client端发送完数据后发送结束命令Ypacket.cmd=6
+- server端收到client.cmd=6后发送最终回应
+  - Ypacket.cmd=6
+  - Ypacket.body=Reply
+
+
+
+### 双向流
+
+- 按照一次调用先发送调用请求,Ypacket.cmd=8, server回应成功时Ypacket.cmd=8
+- 从第二个数据包开始,Ypacket.cmd=5,Ypacket.ostr不需要填写method签名
+- Ypacket.no以0开始标识每一个请求包
+- server收到后回应收到调用数据
+  - Ypacket.cmd=5
+  - Ypacket.no=client发送的Ypacket.no
+  - Ypacket.sid+cid=client发送的cid
+  - Ypacket.optstr=server的nats sub uuid
+- server端随时可以发送回应流
+  - Ypacket.cmd=12
+  - Ypacket.cid为调用时的值
+  - Ypacket.no从0开始计数发送
+  - Ypacket.body=Replay
+- client收到server.cmd=12时,需要回应收到数据包
+  - Ypacket.cmd=12
+  - Ypacket.cid跟第一次一样
+  - Ypacket.no=server端的Ypacket.no
+- client端发送完数据后发送结束命令Ypacket.cmd=6
+- server端发送最终回应(可以在client发送结束命令cmd=6前发送)
+  - Ypacket.cmd=13
+  - Ypacket.body=可能为空
 
