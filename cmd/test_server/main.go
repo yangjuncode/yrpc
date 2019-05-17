@@ -44,7 +44,10 @@ func WebServe() {
 
 	http.Handle("/", r)
 
-	http.ListenAndServe(*httpAddr, nil)
+	err = http.ListenAndServe(*httpAddr, nil)
+	if err != nil {
+		log.Error().Err(err).Str("httpAddr", *httpAddr).Msg("http server err")
+	}
 
 }
 
