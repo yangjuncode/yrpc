@@ -75,9 +75,9 @@ message Ypacket {
 
   // rpc command,rpc的命令和option
   // b15-b0(uint16):为rpc命令
-  // b19-b16:body压缩方式 0:无压缩 1:lz4 2:zlib inflate/deflate
-  // b23-b20:optbin压缩方式 0:无压缩 1:lz4 2:zlib inflate/deflate
-  // b31-b16: not used yet
+  // b17-b16:body压缩方式 0:无压缩 1:lz4 2:zlib inflate/deflate
+  // b19-b18:optbin压缩方式 0:无压缩 1:lz4 2:zlib inflate/deflate
+  // b31-b20: not used yet
   fixed32 cmd = 2;
 
   //rpc call id,给分辨不同的rpc调用使用,调用方增1循环使用
