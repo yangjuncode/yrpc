@@ -74,9 +74,9 @@ message Ypacket {
   fixed32 len = 1;
 
   // rpc command,rpc的命令和option
-  // b7-b0(uint8):为rpc命令
-  // b12-b8:body压缩方式 0:无压缩 1:lz4 2:zlib inflate/deflate
-  // b15-b13:optbin压缩方式 0:无压缩 1:lz4 2:zlib inflate/deflate
+  // b15-b0(uint16):为rpc命令
+  // b19-b16:body压缩方式 0:无压缩 1:lz4 2:zlib inflate/deflate
+  // b23-b20:optbin压缩方式 0:无压缩 1:lz4 2:zlib inflate/deflate
   // b31-b16: not used yet
   fixed32 cmd = 2;
 
@@ -117,6 +117,7 @@ message Ypacket {
   - api版本放在Ypacket.meta里面key="ver", value="1.2",没有特定版本时不用放,有些api是不需要理会版本的
   - Ypacket.optstr=grpc.method签名(/pkg.service/method)
   - Ypacket.body=Request
+  - Ypacket.no=0
   - Ypacket.cid为本次rpc调用的唯一标识
   - client端将上述数据打包后发送到服务器端
   - server端收到调用后进行处理,处理结果返回如下:
@@ -138,6 +139,23 @@ message Ypacket {
 - 只有发送过程,没有回应
 - 对于需要没有数据的回应不能使用Ynocare,应该使用Yempty
 
+
+
+### 客户端流
+
+- 按照一次调用先发送调用请求,Ypacket.cmd=3, Ypacket.no=0
+- 从第二个数据包开始,Ypacket.cmd=5,Ypacket.ostr不需要填写method签名
+- Ypacket.no以1开始标识cmd=5的包,cmd=5的第一个包为整个客户端流的第二个包
+- server收到后回应收到调用数据
+  - Ypacket.cmd=5
+  - Ypacket.no=client发送的Ypacket.no
+  - Ypacket.cid=client发送的cid
+- client端发送完数据后发送结束命令Ypacket.cmd=6
+- server端收到client.cmd=6后发送最终回应
+  - Ypacket.cmd=6
+  - Ypacket.body=Reply
+
+
 ### 服务端流
 
 - 按照一次调用先发送调用请求,Ypacket.cmd=7
@@ -155,32 +173,15 @@ message Ypacket {
 - server端结束时发送命令Ypacket.cmd=13
   - Ypacket.body可能为空
 
-
-### 客户端流
-
-- 按照一次调用先发送调用请求,Ypacket.cmd=3
-- 从第二个数据包开始,Ypacket.cmd=5,Ypacket.ostr不需要填写method签名
-- Ypacket.no以0开始标识每一个请求包
-- server收到后回应收到调用数据
-  - Ypacket.cmd=5
-  - Ypacket.no=client发送的Ypacket.no
-  - Ypacket.cid=client发送的cid
-- client端发送完数据后发送结束命令Ypacket.cmd=6
-- server端收到client.cmd=6后发送最终回应
-  - Ypacket.cmd=6
-  - Ypacket.body=Reply
-
-
-
 ### 双向流
 
 - 按照一次调用先发送调用请求,Ypacket.cmd=8, server回应成功时Ypacket.cmd=8
 - 从第二个数据包开始,Ypacket.cmd=5,Ypacket.ostr不需要填写method签名
-- Ypacket.no以0开始标识每一个请求包
+- Ypacket.no以1开始标识cmd=5的包,cmd=5的第一个包为整个双向流的第二个包
 - server收到后回应收到调用数据
   - Ypacket.cmd=5
   - Ypacket.no=client发送的Ypacket.no
-  - Ypacket.sid+cid=client发送的cid
+  - Ypacket.cid=client发送的cid
   - Ypacket.optstr=server的nats sub uuid
 - server端随时可以发送回应流
   - Ypacket.cmd=12
@@ -195,4 +196,64 @@ message Ypacket {
 - server端发送最终回应(可以在client发送结束命令cmd=6前发送)
   - Ypacket.cmd=13
   - Ypacket.body=可能为空
+
+
+### 取消rpc请求
+
+- 对于流式调用,,发起调用后,任何时候client都可以取消请求
+- Ypacket.cmd=4
+- Ypacket.cid为调用时的值
+- 后端收到取消请求后取消,然后返回取消成功 Ypacket.cmd=44
+- 对于单次调用,后端无法取消,只能调用者自己取消掉回调处理,不再处理回调结果
+
+
+### 双向Ping
+
+- 双向ping用于确认对方是否还在线和保持心跳
+
+- ping socket连接的对方: Ypacket.cmd=14 res=0, cid=0
+
+- pong: Ypacket.cmd=14 res=1 cid为原值
+
+- ping: Ypacket.optstr="1"时为请求对方的时间,此时对方回应的Ypacket.body=UnixTime
+  - ```protobuf
+    message UnixTime {
+      // Unix time, the number of miliseconds elapsed since January 1, 1970 UTC
+      sint64 time_unix = 1;
+      //utc time yyyy-MM-dd hh:mm:ss.zzz
+      string time_str = 2;
+    }
+    ```
+
+
+
+
+### 所有命令列表
+| 上行命令 | 说明                              | 下行命令 |           |
+| -------- | --------------------------------- | -------- | --------- |
+| 1        | 单次调用                          | 1        | 调用成功  |
+|          |                                   | 4        | 调用失败  |
+| 2        | Nocare调用                        | 无       |           |
+| 3        | 客户端流调用                      | 3        | 调用成功  |
+|          |                                   | 4        | 调用失败  |
+| 4        | 取消流rpc调用                     | 44       | 取消成功  |
+| 5        | 客户端调用,后续的send             | 5        | 调用成功  |
+|          |                                   | 4        | 调用失败  |
+| 6        | 客户端流发送结束,closesendandrecv | 6        | 调用成功  |
+|          |                                   | 4        | 调用失败  |
+| 7        | 服务端流调用                      | 7        | 调用成功  |
+|          |                                   | 4        | 调用失败  |
+|          | 服务端数据回来                    | 12       | 服务端流  |
+| 12       | 回应收到服务端流数据              |          |           |
+|          | 服务端流结束                      | 13       |           |
+| 13       | 回应服务端流结束                  |          |           |
+| 8        | 双向流调用                        | 8        | 调用成功  |
+|          |                                   | 4        | 调用失败  |
+| 9        | nats publish                      | 9        | 调用成功  |
+|          |                                   | 4        | 调用失败  |
+| 10       | nats sub/unsub                    | 10       | 调用成功  |
+|          |                                   | 4        | 调用失败  |
+|          | got nats msg                      | 11       | 后端推送  |
+| 14       | ping/pong server                  | 14       | keepalive |
+
 
