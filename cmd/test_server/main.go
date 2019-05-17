@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 
+	"git.cchdx.com:5280/yrpc/yrpc/yrpc"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -64,7 +65,43 @@ func yrpcWebsocket(w http.ResponseWriter, r *http.Request) {
 }
 
 func processingOneWebsocket(conn *websocket.Conn) {
-for{
-	conn
-}
+	for {
+		//conn.SetReadDeadline(time.Now().Add(time.Minute * 10))
+
+		_, pktData, err := conn.ReadMessage()
+
+		if err != nil {
+			log.Info().Err(err).Msg("ws read err")
+			conn.Close()
+			return
+		}
+		ypacket := &yrpc.Ypacket{}
+
+		err = ypacket.Unmarshal(pktData)
+
+		if err != nil {
+			log.Error().Err(err).Msg("ypacket decode err")
+			conn.Close()
+			return
+		}
+
+		switch ypacket.Cmd {
+		case 1:
+		case 2:
+		case 3:
+		case 4:
+		case 5:
+		case 6:
+		case 7:
+		case 8:
+		case 9:
+		case 10:
+		case 11:
+			//no used yet
+		case 12:
+		case 13:
+		case 14:
+
+		}
+	}
 }
