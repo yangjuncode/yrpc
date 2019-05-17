@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"os"
 
-	"git.cchdx.com:5280/yrpc/yrpc/yrpc"
+	"github.com/yangjuncode/yrpc/yrpc"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
