@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/yangjuncode/yrpc/yrpc"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog/log"
+	"github.com/yangjuncode/yrpc"
 )
 
 var httpAddr = flag.String("http-addr", ":8000", "http service address")
