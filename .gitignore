@@ -4,3 +4,6 @@
 cmd/test_server/test_server
 
 cmd/protoc-gen-yrpc/protoc-gen-yrpc
+
+javascript/yrpc/node_modules/
+javascript/yrpc/.idea/
