@@ -10,6 +10,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog/log"
 	"github.com/yangjuncode/yrpc"
+	"github.com/yangjuncode/yrpc/util"
 )
 
 var httpAddr = flag.String("http-addr", ":8000", "http service address")
@@ -90,7 +91,9 @@ func processingOneWebsocket(conn *websocket.Conn) {
 
 		switch ypacket.Cmd {
 		case 1:
+			yrpcUnaryCall(conn, ypacket)
 		case 2:
+			yrpcNocareCall(conn, ypacket)
 		case 3:
 		case 4:
 		case 5:
@@ -104,7 +107,41 @@ func processingOneWebsocket(conn *websocket.Conn) {
 		case 12:
 		case 13:
 		case 14:
-
+			yrpcPing(conn, ypacket)
 		}
 	}
+}
+
+func yrpcPing(conn *websocket.Conn, pkt *yrpc.Ypacket) {
+	if pkt.Res != 0 {
+		//pong
+		log.Info().Str("ip", conn.RemoteAddr().String()).Msg("got pong")
+		return
+	}
+
+	pkt.Res = 1
+
+	if len(pkt.Optstr) > 0 {
+		unixTime := yrpc.UnixTime{
+			TimeUnix: util.GetNowUnixEpochInMilliseconds(),
+			TimeStr:  util.GetNowTimeUtcStrzzz(),
+		}
+
+		pkt.Body, _ = unixTime.Marshal()
+	}
+
+	resData, _ := pkt.Marshal()
+
+	err := conn.WriteMessage(websocket.BinaryMessage, resData)
+	if err != nil {
+		log.Error().Err(err).Msg("response ping err")
+	}
+}
+
+func yrpcUnaryCall(conn *websocket.Conn, pkt *yrpc.Ypacket) {
+
+}
+
+func yrpcNocareCall(conn *websocket.Conn, pkt *yrpc.Ypacket) {
+
 }
