@@ -18,33 +18,32 @@ $root.yrpc = (function() {
      */
     var yrpc = {};
 
-    yrpc.ymsg = (function() {
+    yrpc.Ypacket = (function() {
 
         /**
-         * Properties of a ymsg.
+         * Properties of a Ypacket.
          * @memberof yrpc
-         * @interface Iymsg
-         * @property {number|null} [len] ymsg len
-         * @property {number|null} [cmd] ymsg cmd
-         * @property {Uint8Array|null} [sid] ymsg sid
-         * @property {number|null} [cid] ymsg cid
-         * @property {number|null} [no] ymsg no
-         * @property {number|null} [res] ymsg res
-         * @property {Uint8Array|null} [body] ymsg body
-         * @property {string|null} [optstr] ymsg optstr
-         * @property {Uint8Array|null} [optbin] ymsg optbin
-         * @property {Array.<string>|null} [meta] ymsg meta
+         * @interface IYpacket
+         * @property {number|null} [len] Ypacket len
+         * @property {number|null} [cmd] Ypacket cmd
+         * @property {number|null} [cid] Ypacket cid
+         * @property {number|null} [no] Ypacket no
+         * @property {number|null} [res] Ypacket res
+         * @property {Uint8Array|null} [body] Ypacket body
+         * @property {string|null} [optstr] Ypacket optstr
+         * @property {Uint8Array|null} [optbin] Ypacket optbin
+         * @property {Array.<string>|null} [meta] Ypacket meta
          */
 
         /**
-         * Constructs a new ymsg.
+         * Constructs a new Ypacket.
          * @memberof yrpc
-         * @classdesc Represents a ymsg.
-         * @implements Iymsg
+         * @classdesc Represents a Ypacket.
+         * @implements IYpacket
          * @constructor
-         * @param {yrpc.Iymsg=} [properties] Properties to set
+         * @param {yrpc.IYpacket=} [properties] Properties to set
          */
-        function ymsg(properties) {
+        function Ypacket(properties) {
             this.meta = [];
             if (properties)
                 for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
@@ -53,109 +52,99 @@ $root.yrpc = (function() {
         }
 
         /**
-         * ymsg len.
+         * Ypacket len.
          * @member {number} len
-         * @memberof yrpc.ymsg
+         * @memberof yrpc.Ypacket
          * @instance
          */
-        ymsg.prototype.len = 0;
+        Ypacket.prototype.len = 0;
 
         /**
-         * ymsg cmd.
+         * Ypacket cmd.
          * @member {number} cmd
-         * @memberof yrpc.ymsg
+         * @memberof yrpc.Ypacket
          * @instance
          */
-        ymsg.prototype.cmd = 0;
+        Ypacket.prototype.cmd = 0;
 
         /**
-         * ymsg sid.
-         * @member {Uint8Array} sid
-         * @memberof yrpc.ymsg
-         * @instance
-         */
-        ymsg.prototype.sid = $util.newBuffer([]);
-
-        /**
-         * ymsg cid.
+         * Ypacket cid.
          * @member {number} cid
-         * @memberof yrpc.ymsg
+         * @memberof yrpc.Ypacket
          * @instance
          */
-        ymsg.prototype.cid = 0;
+        Ypacket.prototype.cid = 0;
 
         /**
-         * ymsg no.
+         * Ypacket no.
          * @member {number} no
-         * @memberof yrpc.ymsg
+         * @memberof yrpc.Ypacket
          * @instance
          */
-        ymsg.prototype.no = 0;
+        Ypacket.prototype.no = 0;
 
         /**
-         * ymsg res.
+         * Ypacket res.
          * @member {number} res
-         * @memberof yrpc.ymsg
+         * @memberof yrpc.Ypacket
          * @instance
          */
-        ymsg.prototype.res = 0;
+        Ypacket.prototype.res = 0;
 
         /**
-         * ymsg body.
+         * Ypacket body.
          * @member {Uint8Array} body
-         * @memberof yrpc.ymsg
+         * @memberof yrpc.Ypacket
          * @instance
          */
-        ymsg.prototype.body = $util.newBuffer([]);
+        Ypacket.prototype.body = $util.newBuffer([]);
 
         /**
-         * ymsg optstr.
+         * Ypacket optstr.
          * @member {string} optstr
-         * @memberof yrpc.ymsg
+         * @memberof yrpc.Ypacket
          * @instance
          */
-        ymsg.prototype.optstr = "";
+        Ypacket.prototype.optstr = "";
 
         /**
-         * ymsg optbin.
+         * Ypacket optbin.
          * @member {Uint8Array} optbin
-         * @memberof yrpc.ymsg
+         * @memberof yrpc.Ypacket
          * @instance
          */
-        ymsg.prototype.optbin = $util.newBuffer([]);
+        Ypacket.prototype.optbin = $util.newBuffer([]);
 
         /**
-         * ymsg meta.
+         * Ypacket meta.
          * @member {Array.<string>} meta
-         * @memberof yrpc.ymsg
+         * @memberof yrpc.Ypacket
          * @instance
          */
-        ymsg.prototype.meta = $util.emptyArray;
+        Ypacket.prototype.meta = $util.emptyArray;
 
         /**
-         * Encodes the specified ymsg message. Does not implicitly {@link yrpc.ymsg.verify|verify} messages.
+         * Encodes the specified Ypacket message. Does not implicitly {@link yrpc.Ypacket.verify|verify} messages.
          * @function encode
-         * @memberof yrpc.ymsg
+         * @memberof yrpc.Ypacket
          * @static
-         * @param {yrpc.Iymsg} message ymsg message or plain object to encode
+         * @param {yrpc.IYpacket} message Ypacket message or plain object to encode
          * @param {$protobuf.Writer} [writer] Writer to encode to
          * @returns {$protobuf.Writer} Writer
          */
-        ymsg.encode = function encode(message, writer) {
+        Ypacket.encode = function encode(message, writer) {
             if (!writer)
                 writer = $Writer.create();
             if (message.len != null && message.hasOwnProperty("len"))
                 writer.uint32(/* id 1, wireType 5 =*/13).fixed32(message.len);
             if (message.cmd != null && message.hasOwnProperty("cmd"))
                 writer.uint32(/* id 2, wireType 5 =*/21).fixed32(message.cmd);
-            if (message.sid != null && message.hasOwnProperty("sid"))
-                writer.uint32(/* id 3, wireType 2 =*/26).bytes(message.sid);
             if (message.cid != null && message.hasOwnProperty("cid"))
-                writer.uint32(/* id 4, wireType 0 =*/32).uint32(message.cid);
+                writer.uint32(/* id 3, wireType 0 =*/24).uint32(message.cid);
             if (message.no != null && message.hasOwnProperty("no"))
-                writer.uint32(/* id 5, wireType 0 =*/40).uint32(message.no);
+                writer.uint32(/* id 4, wireType 0 =*/32).uint32(message.no);
             if (message.res != null && message.hasOwnProperty("res"))
-                writer.uint32(/* id 9, wireType 0 =*/72).sint32(message.res);
+                writer.uint32(/* id 5, wireType 0 =*/40).sint32(message.res);
             if (message.body != null && message.hasOwnProperty("body"))
                 writer.uint32(/* id 10, wireType 2 =*/82).bytes(message.body);
             if (message.optstr != null && message.hasOwnProperty("optstr"))
@@ -169,20 +158,20 @@ $root.yrpc = (function() {
         };
 
         /**
-         * Decodes a ymsg message from the specified reader or buffer.
+         * Decodes a Ypacket message from the specified reader or buffer.
          * @function decode
-         * @memberof yrpc.ymsg
+         * @memberof yrpc.Ypacket
          * @static
          * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
          * @param {number} [length] Message length if known beforehand
-         * @returns {yrpc.ymsg} ymsg
+         * @returns {yrpc.Ypacket} Ypacket
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        ymsg.decode = function decode(reader, length) {
+        Ypacket.decode = function decode(reader, length) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
-            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.yrpc.ymsg();
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.yrpc.Ypacket();
             while (reader.pos < end) {
                 var tag = reader.uint32();
                 switch (tag >>> 3) {
@@ -193,15 +182,12 @@ $root.yrpc = (function() {
                     message.cmd = reader.fixed32();
                     break;
                 case 3:
-                    message.sid = reader.bytes();
-                    break;
-                case 4:
                     message.cid = reader.uint32();
                     break;
-                case 5:
+                case 4:
                     message.no = reader.uint32();
                     break;
-                case 9:
+                case 5:
                     message.res = reader.sint32();
                     break;
                 case 10:
@@ -226,7 +212,7 @@ $root.yrpc = (function() {
             return message;
         };
 
-        return ymsg;
+        return Ypacket;
     })();
 
     yrpc.Yempty = (function() {
@@ -363,157 +349,6 @@ $root.yrpc = (function() {
         return Ynocare;
     })();
 
-    yrpc.Ylogin = (function() {
-
-        /**
-         * Properties of a Ylogin.
-         * @memberof yrpc
-         * @interface IYlogin
-         * @property {number|null} [type] Ylogin type
-         * @property {string|null} [name] Ylogin name
-         * @property {number|null} [passwordEncrypt] Ylogin passwordEncrypt
-         * @property {string|null} [passwordHash] Ylogin passwordHash
-         * @property {string|null} [sys] Ylogin sys
-         * @property {string|null} [time] Ylogin time
-         */
-
-        /**
-         * Constructs a new Ylogin.
-         * @memberof yrpc
-         * @classdesc Represents a Ylogin.
-         * @implements IYlogin
-         * @constructor
-         * @param {yrpc.IYlogin=} [properties] Properties to set
-         */
-        function Ylogin(properties) {
-            if (properties)
-                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                    if (properties[keys[i]] != null)
-                        this[keys[i]] = properties[keys[i]];
-        }
-
-        /**
-         * Ylogin type.
-         * @member {number} type
-         * @memberof yrpc.Ylogin
-         * @instance
-         */
-        Ylogin.prototype.type = 0;
-
-        /**
-         * Ylogin name.
-         * @member {string} name
-         * @memberof yrpc.Ylogin
-         * @instance
-         */
-        Ylogin.prototype.name = "";
-
-        /**
-         * Ylogin passwordEncrypt.
-         * @member {number} passwordEncrypt
-         * @memberof yrpc.Ylogin
-         * @instance
-         */
-        Ylogin.prototype.passwordEncrypt = 0;
-
-        /**
-         * Ylogin passwordHash.
-         * @member {string} passwordHash
-         * @memberof yrpc.Ylogin
-         * @instance
-         */
-        Ylogin.prototype.passwordHash = "";
-
-        /**
-         * Ylogin sys.
-         * @member {string} sys
-         * @memberof yrpc.Ylogin
-         * @instance
-         */
-        Ylogin.prototype.sys = "";
-
-        /**
-         * Ylogin time.
-         * @member {string} time
-         * @memberof yrpc.Ylogin
-         * @instance
-         */
-        Ylogin.prototype.time = "";
-
-        /**
-         * Encodes the specified Ylogin message. Does not implicitly {@link yrpc.Ylogin.verify|verify} messages.
-         * @function encode
-         * @memberof yrpc.Ylogin
-         * @static
-         * @param {yrpc.IYlogin} message Ylogin message or plain object to encode
-         * @param {$protobuf.Writer} [writer] Writer to encode to
-         * @returns {$protobuf.Writer} Writer
-         */
-        Ylogin.encode = function encode(message, writer) {
-            if (!writer)
-                writer = $Writer.create();
-            if (message.type != null && message.hasOwnProperty("type"))
-                writer.uint32(/* id 1, wireType 0 =*/8).int32(message.type);
-            if (message.name != null && message.hasOwnProperty("name"))
-                writer.uint32(/* id 2, wireType 2 =*/18).string(message.name);
-            if (message.passwordEncrypt != null && message.hasOwnProperty("passwordEncrypt"))
-                writer.uint32(/* id 3, wireType 0 =*/24).int32(message.passwordEncrypt);
-            if (message.passwordHash != null && message.hasOwnProperty("passwordHash"))
-                writer.uint32(/* id 4, wireType 2 =*/34).string(message.passwordHash);
-            if (message.sys != null && message.hasOwnProperty("sys"))
-                writer.uint32(/* id 5, wireType 2 =*/42).string(message.sys);
-            if (message.time != null && message.hasOwnProperty("time"))
-                writer.uint32(/* id 6, wireType 2 =*/50).string(message.time);
-            return writer;
-        };
-
-        /**
-         * Decodes a Ylogin message from the specified reader or buffer.
-         * @function decode
-         * @memberof yrpc.Ylogin
-         * @static
-         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-         * @param {number} [length] Message length if known beforehand
-         * @returns {yrpc.Ylogin} Ylogin
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        Ylogin.decode = function decode(reader, length) {
-            if (!(reader instanceof $Reader))
-                reader = $Reader.create(reader);
-            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.yrpc.Ylogin();
-            while (reader.pos < end) {
-                var tag = reader.uint32();
-                switch (tag >>> 3) {
-                case 1:
-                    message.type = reader.int32();
-                    break;
-                case 2:
-                    message.name = reader.string();
-                    break;
-                case 3:
-                    message.passwordEncrypt = reader.int32();
-                    break;
-                case 4:
-                    message.passwordHash = reader.string();
-                    break;
-                case 5:
-                    message.sys = reader.string();
-                    break;
-                case 6:
-                    message.time = reader.string();
-                    break;
-                default:
-                    reader.skipType(tag & 7);
-                    break;
-                }
-            }
-            return message;
-        };
-
-        return Ylogin;
-    })();
-
     yrpc.UnixTime = (function() {
 
         /**
@@ -607,129 +442,6 @@ $root.yrpc = (function() {
         };
 
         return UnixTime;
-    })();
-
-    yrpc.natsOption = (function() {
-
-        /**
-         * Properties of a natsOption.
-         * @memberof yrpc
-         * @interface InatsOption
-         * @property {Uint8Array|null} [origSid] natsOption origSid
-         * @property {number|null} [origCid] natsOption origCid
-         * @property {string|null} [reply] natsOption reply
-         * @property {Uint8Array|null} [obin] natsOption obin
-         */
-
-        /**
-         * Constructs a new natsOption.
-         * @memberof yrpc
-         * @classdesc Represents a natsOption.
-         * @implements InatsOption
-         * @constructor
-         * @param {yrpc.InatsOption=} [properties] Properties to set
-         */
-        function natsOption(properties) {
-            if (properties)
-                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                    if (properties[keys[i]] != null)
-                        this[keys[i]] = properties[keys[i]];
-        }
-
-        /**
-         * natsOption origSid.
-         * @member {Uint8Array} origSid
-         * @memberof yrpc.natsOption
-         * @instance
-         */
-        natsOption.prototype.origSid = $util.newBuffer([]);
-
-        /**
-         * natsOption origCid.
-         * @member {number} origCid
-         * @memberof yrpc.natsOption
-         * @instance
-         */
-        natsOption.prototype.origCid = 0;
-
-        /**
-         * natsOption reply.
-         * @member {string} reply
-         * @memberof yrpc.natsOption
-         * @instance
-         */
-        natsOption.prototype.reply = "";
-
-        /**
-         * natsOption obin.
-         * @member {Uint8Array} obin
-         * @memberof yrpc.natsOption
-         * @instance
-         */
-        natsOption.prototype.obin = $util.newBuffer([]);
-
-        /**
-         * Encodes the specified natsOption message. Does not implicitly {@link yrpc.natsOption.verify|verify} messages.
-         * @function encode
-         * @memberof yrpc.natsOption
-         * @static
-         * @param {yrpc.InatsOption} message natsOption message or plain object to encode
-         * @param {$protobuf.Writer} [writer] Writer to encode to
-         * @returns {$protobuf.Writer} Writer
-         */
-        natsOption.encode = function encode(message, writer) {
-            if (!writer)
-                writer = $Writer.create();
-            if (message.origSid != null && message.hasOwnProperty("origSid"))
-                writer.uint32(/* id 1, wireType 2 =*/10).bytes(message.origSid);
-            if (message.origCid != null && message.hasOwnProperty("origCid"))
-                writer.uint32(/* id 2, wireType 0 =*/16).uint32(message.origCid);
-            if (message.reply != null && message.hasOwnProperty("reply"))
-                writer.uint32(/* id 3, wireType 2 =*/26).string(message.reply);
-            if (message.obin != null && message.hasOwnProperty("obin"))
-                writer.uint32(/* id 4, wireType 2 =*/34).bytes(message.obin);
-            return writer;
-        };
-
-        /**
-         * Decodes a natsOption message from the specified reader or buffer.
-         * @function decode
-         * @memberof yrpc.natsOption
-         * @static
-         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-         * @param {number} [length] Message length if known beforehand
-         * @returns {yrpc.natsOption} natsOption
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        natsOption.decode = function decode(reader, length) {
-            if (!(reader instanceof $Reader))
-                reader = $Reader.create(reader);
-            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.yrpc.natsOption();
-            while (reader.pos < end) {
-                var tag = reader.uint32();
-                switch (tag >>> 3) {
-                case 1:
-                    message.origSid = reader.bytes();
-                    break;
-                case 2:
-                    message.origCid = reader.uint32();
-                    break;
-                case 3:
-                    message.reply = reader.string();
-                    break;
-                case 4:
-                    message.obin = reader.bytes();
-                    break;
-                default:
-                    reader.skipType(tag & 7);
-                    break;
-                }
-            }
-            return message;
-        };
-
-        return natsOption;
     })();
 
     return yrpc;
