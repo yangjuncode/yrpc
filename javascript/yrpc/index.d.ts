@@ -1,18 +1,18 @@
 import { yrpc } from './rpc';
 export interface IResult {
-    (res: any, rpcCmd: yrpc.ymsg): void;
+    (res: any, rpcCmd: yrpc.Ypacket): void;
 }
 export interface IServerErr {
-    (errRpc: yrpc.ymsg): void;
+    (errRpc: yrpc.Ypacket): void;
 }
 export interface ILocalErr {
     (err: any): void;
 }
 export interface IPong {
-    (rpcCmd: yrpc.ymsg): void;
+    (rpcCmd: yrpc.Ypacket): void;
 }
 export interface ICancel {
-    (rpcCmd: yrpc.ymsg): void;
+    (rpcCmd: yrpc.Ypacket): void;
 }
 export declare class TCallOption {
     timeout: number;
@@ -40,7 +40,7 @@ export declare class TRpcStream {
     sendFinish(): void;
     cancel(): void;
     ping(): void;
-    onRpc(rpc: yrpc.ymsg): void;
+    onRpc(rpc: yrpc.Ypacket): void;
     intervalCheck(): void;
 }
 export declare class TrpcCon {
@@ -56,7 +56,7 @@ export declare class TrpcCon {
     initWsCon(url: string): void;
     isWsConnected(): boolean;
     sendRpcData(rpcData: Uint8Array): boolean;
-    sendRpc(rpc: yrpc.ymsg): boolean;
+    sendRpc(rpc: yrpc.Ypacket): boolean;
     onWsMsg(ev: MessageEvent): void;
     onWsErr(ev: Event): void;
     onWsClose(ev: CloseEvent): void;

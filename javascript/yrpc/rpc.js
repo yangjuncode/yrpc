@@ -444,6 +444,129 @@ $root.yrpc = (function() {
         return UnixTime;
     })();
 
+    yrpc.natsOption = (function() {
+
+        /**
+         * Properties of a natsOption.
+         * @memberof yrpc
+         * @interface InatsOption
+         * @property {Uint8Array|null} [origSid] natsOption origSid
+         * @property {number|null} [origCid] natsOption origCid
+         * @property {string|null} [reply] natsOption reply
+         * @property {Uint8Array|null} [obin] natsOption obin
+         */
+
+        /**
+         * Constructs a new natsOption.
+         * @memberof yrpc
+         * @classdesc Represents a natsOption.
+         * @implements InatsOption
+         * @constructor
+         * @param {yrpc.InatsOption=} [properties] Properties to set
+         */
+        function natsOption(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * natsOption origSid.
+         * @member {Uint8Array} origSid
+         * @memberof yrpc.natsOption
+         * @instance
+         */
+        natsOption.prototype.origSid = $util.newBuffer([]);
+
+        /**
+         * natsOption origCid.
+         * @member {number} origCid
+         * @memberof yrpc.natsOption
+         * @instance
+         */
+        natsOption.prototype.origCid = 0;
+
+        /**
+         * natsOption reply.
+         * @member {string} reply
+         * @memberof yrpc.natsOption
+         * @instance
+         */
+        natsOption.prototype.reply = "";
+
+        /**
+         * natsOption obin.
+         * @member {Uint8Array} obin
+         * @memberof yrpc.natsOption
+         * @instance
+         */
+        natsOption.prototype.obin = $util.newBuffer([]);
+
+        /**
+         * Encodes the specified natsOption message. Does not implicitly {@link yrpc.natsOption.verify|verify} messages.
+         * @function encode
+         * @memberof yrpc.natsOption
+         * @static
+         * @param {yrpc.InatsOption} message natsOption message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        natsOption.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.origSid != null && message.hasOwnProperty("origSid"))
+                writer.uint32(/* id 1, wireType 2 =*/10).bytes(message.origSid);
+            if (message.origCid != null && message.hasOwnProperty("origCid"))
+                writer.uint32(/* id 2, wireType 0 =*/16).uint32(message.origCid);
+            if (message.reply != null && message.hasOwnProperty("reply"))
+                writer.uint32(/* id 3, wireType 2 =*/26).string(message.reply);
+            if (message.obin != null && message.hasOwnProperty("obin"))
+                writer.uint32(/* id 4, wireType 2 =*/34).bytes(message.obin);
+            return writer;
+        };
+
+        /**
+         * Decodes a natsOption message from the specified reader or buffer.
+         * @function decode
+         * @memberof yrpc.natsOption
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {yrpc.natsOption} natsOption
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        natsOption.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.yrpc.natsOption();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1:
+                    message.origSid = reader.bytes();
+                    break;
+                case 2:
+                    message.origCid = reader.uint32();
+                    break;
+                case 3:
+                    message.reply = reader.string();
+                    break;
+                case 4:
+                    message.obin = reader.bytes();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        return natsOption;
+    })();
+
     return yrpc;
 })();
 

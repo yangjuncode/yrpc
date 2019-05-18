@@ -74,3 +74,15 @@ message UnixTime {
   string time_str = 2;
 }
 
+message natsOption {
+    //original sid
+    bytes orig_sid = 1;
+    //original cid
+    uint32 orig_cid=2;
+
+    //nats replay
+    string reply = 3;
+    //optional binary parameters
+    bytes obin = 4;
+
+}

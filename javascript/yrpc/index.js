@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var rpc_1 = require("./rpc");
 var pako_1 = require("pako");
-var lz4_asm_1 = require("lz4-asm");
 var mapUtil_1 = require("./mapUtil");
 var ypubsub_1 = require("./ypubsub");
 var TCallOption = /** @class */ (function () {
@@ -44,7 +43,7 @@ var TRpcStream = /** @class */ (function () {
         }
     };
     TRpcStream.prototype.sendFirst = function (reqData) {
-        var rpc = new rpc_1.yrpc.ymsg();
+        var rpc = new rpc_1.yrpc.Ypacket();
         if (this.apiVerion > 0) {
             rpc.cmd = 1 | (this.apiVerion << 24);
         }
@@ -53,7 +52,6 @@ var TRpcStream = /** @class */ (function () {
         }
         rpc.body = reqData;
         rpc.optstr = this.api;
-        rpc.sid = exports.rpcCon.Sid;
         rpc.cid = this.cid;
         rpc.no = 0;
         this.newNo = 1;
@@ -64,7 +62,7 @@ var TRpcStream = /** @class */ (function () {
     };
     //return rpc no,if <0: not send to socket
     TRpcStream.prototype.sendNext = function (reqData) {
-        var rpc = new rpc_1.yrpc.ymsg();
+        var rpc = new rpc_1.yrpc.Ypacket();
         if (this.apiVerion > 0) {
             rpc.cmd = 7 | (this.apiVerion << 24);
         }
@@ -72,7 +70,6 @@ var TRpcStream = /** @class */ (function () {
             rpc.cmd = 7;
         }
         rpc.body = reqData;
-        rpc.sid = exports.rpcCon.Sid;
         rpc.cid = this.cid;
         rpc.no = this.newNo;
         ++this.newNo;
@@ -86,9 +83,8 @@ var TRpcStream = /** @class */ (function () {
     };
     //client stream finish
     TRpcStream.prototype.sendFinish = function () {
-        var rpc = new rpc_1.yrpc.ymsg();
+        var rpc = new rpc_1.yrpc.Ypacket();
         rpc.cmd = 9;
-        rpc.sid = exports.rpcCon.Sid;
         rpc.cid = this.cid;
         var sendOk = exports.rpcCon.sendRpc(rpc);
         if (sendOk) {
@@ -97,9 +93,8 @@ var TRpcStream = /** @class */ (function () {
     };
     //cancel the rpc call
     TRpcStream.prototype.cancel = function () {
-        var rpc = new rpc_1.yrpc.ymsg();
+        var rpc = new rpc_1.yrpc.Ypacket();
         rpc.cmd = 44;
-        rpc.sid = exports.rpcCon.Sid;
         rpc.cid = this.cid;
         var sendOk = exports.rpcCon.sendRpc(rpc);
         if (sendOk) {
@@ -108,9 +103,8 @@ var TRpcStream = /** @class */ (function () {
     };
     //ping
     TRpcStream.prototype.ping = function () {
-        var rpc = new rpc_1.yrpc.ymsg();
+        var rpc = new rpc_1.yrpc.Ypacket();
         rpc.cmd = 3;
-        rpc.sid = exports.rpcCon.Sid;
         rpc.cid = exports.rpcCon.NewCid();
         var sendOk = exports.rpcCon.sendRpc(rpc);
         if (sendOk) {
@@ -203,19 +197,19 @@ var TrpcCon = /** @class */ (function () {
         return true;
     };
     TrpcCon.prototype.sendRpc = function (rpc) {
-        var w = rpc_1.yrpc.ymsg.encode(rpc);
+        var w = rpc_1.yrpc.Ypacket.encode(rpc);
         var rpcData = w.finish();
         return this.sendRpcData(rpcData);
     };
     TrpcCon.prototype.onWsMsg = function (ev) {
         this.LastRecvTime = Date.now();
         var rpcData = new Uint8Array(ev.data);
-        var rpc = rpc_1.yrpc.ymsg.decode(rpcData);
+        var rpc = rpc_1.yrpc.Ypacket.decode(rpcData);
         if (rpc.body.length > 0) {
             var zipType = rpc.cmd & 0x000f0000;
             switch (zipType) {
                 case 0x00010000: //lz4
-                    rpc.body = lz4_asm_1.default.decompress(rpc.body);
+                    throw new Error("no lz4 support now");
                     break;
                 case 0x00020000: //zlib
                     rpc.body = pako_1.default.inflate(rpc.body);
@@ -226,7 +220,7 @@ var TrpcCon = /** @class */ (function () {
             var zipType = rpc.cmd & 0x00f00000;
             switch (zipType) {
                 case 0x00100000: //lz4
-                    rpc.optbin = lz4_asm_1.default.decompress(rpc.optbin);
+                    throw new Error("no lz4 support now");
                     break;
                 case 0x00200000: //zlib
                     rpc.optbin = pako_1.default.inflate(rpc.optbin);
@@ -268,7 +262,7 @@ var TrpcCon = /** @class */ (function () {
         if (!this.isWsConnected()) {
             return -1;
         }
-        var rpc = new rpc_1.yrpc.ymsg();
+        var rpc = new rpc_1.yrpc.Ypacket();
         rpc.cmd = 11;
         rpc.cid = this.NewCid();
         rpc.optstr = subject;
@@ -289,7 +283,7 @@ var TrpcCon = /** @class */ (function () {
         if (hasExist) {
             return true;
         }
-        var rpc = new rpc_1.yrpc.ymsg();
+        var rpc = new rpc_1.yrpc.Ypacket();
         rpc.cmd = 12;
         rpc.res = 1;
         rpc.cid = this.NewCid();
@@ -305,7 +299,7 @@ var TrpcCon = /** @class */ (function () {
         if (hasExist) {
             return true;
         }
-        var rpc = new rpc_1.yrpc.ymsg();
+        var rpc = new rpc_1.yrpc.Ypacket();
         rpc.cmd = 12;
         rpc.res = 1;
         rpc.cid = this.NewCid();
@@ -314,7 +308,7 @@ var TrpcCon = /** @class */ (function () {
         return this.sendRpc(rpc);
     };
     TrpcCon.prototype.NatsUnsubsribe = function (subject, FnMsg) {
-        var rpc = new rpc_1.yrpc.ymsg();
+        var rpc = new rpc_1.yrpc.Ypacket();
         rpc.cmd = 12;
         rpc.res = 2;
         rpc.cid = this.NewCid();
@@ -346,12 +340,12 @@ var TrpcCon = /** @class */ (function () {
         return this.cid++;
     };
     TrpcCon.prototype.ping = function () {
-        var rpc = new rpc_1.yrpc.ymsg();
+        var rpc = new rpc_1.yrpc.Ypacket();
         rpc.cmd = 3;
         this.sendRpc(rpc);
     };
     TrpcCon.prototype.NocareCall = function (reqData, api, v) {
-        var rpc = new rpc_1.yrpc.ymsg();
+        var rpc = new rpc_1.yrpc.Ypacket();
         if (v > 0) {
             rpc.cmd = 10 | (v << 24);
         }
@@ -363,14 +357,13 @@ var TrpcCon = /** @class */ (function () {
         this.sendRpc(rpc);
     };
     TrpcCon.prototype.UnaryCall = function (reqData, api, v, resType, callOpt) {
-        var rpc = new rpc_1.yrpc.ymsg();
+        var rpc = new rpc_1.yrpc.Ypacket();
         if (v > 0) {
             rpc.cmd = 1 | (v << 24);
         }
         else {
             rpc.cmd = 1;
         }
-        rpc.sid = exports.rpcCon.Sid;
         rpc.cid = exports.rpcCon.NewCid();
         rpc.body = reqData;
         rpc.optstr = api;

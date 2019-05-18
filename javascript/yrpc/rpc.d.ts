@@ -195,4 +195,60 @@ export namespace yrpc {
          */
         public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): yrpc.UnixTime;
     }
+
+    /** Properties of a natsOption. */
+    interface InatsOption {
+
+        /** natsOption origSid */
+        origSid?: (Uint8Array|null);
+
+        /** natsOption origCid */
+        origCid?: (number|null);
+
+        /** natsOption reply */
+        reply?: (string|null);
+
+        /** natsOption obin */
+        obin?: (Uint8Array|null);
+    }
+
+    /** Represents a natsOption. */
+    class natsOption implements InatsOption {
+
+        /**
+         * Constructs a new natsOption.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: yrpc.InatsOption);
+
+        /** natsOption origSid. */
+        public origSid: Uint8Array;
+
+        /** natsOption origCid. */
+        public origCid: number;
+
+        /** natsOption reply. */
+        public reply: string;
+
+        /** natsOption obin. */
+        public obin: Uint8Array;
+
+        /**
+         * Encodes the specified natsOption message. Does not implicitly {@link yrpc.natsOption.verify|verify} messages.
+         * @param message natsOption message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: yrpc.InatsOption, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a natsOption message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns natsOption
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): yrpc.natsOption;
+    }
 }
