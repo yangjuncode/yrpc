@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"net/http"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/yangjuncode/yrpc"
 	"github.com/yangjuncode/yrpc/util"
+	"google.golang.org/grpc"
 )
 
 var httpAddr = flag.String("http-addr", ":8000", "http service address")
@@ -130,18 +132,71 @@ func yrpcPing(conn *websocket.Conn, pkt *yrpc.Ypacket) {
 		pkt.Body, _ = unixTime.Marshal()
 	}
 
-	resData, _ := pkt.Marshal()
-
-	err := conn.WriteMessage(websocket.BinaryMessage, resData)
+	err := writeWebsocketPacket(conn, pkt)
 	if err != nil {
 		log.Error().Err(err).Msg("response ping err")
 	}
 }
 
-func yrpcUnaryCall(conn *websocket.Conn, pkt *yrpc.Ypacket) {
+func writeWebsocketData(conn *websocket.Conn, data []byte) (err error) {
+	err = conn.WriteMessage(websocket.BinaryMessage, data)
+	return
+}
+func writeWebsocketPacket(conn *websocket.Conn, pkt *yrpc.Ypacket) (err error) {
+	data, _ := pkt.Marshal()
+	err = conn.WriteMessage(websocket.BinaryMessage, data)
+	return
+}
 
+func yrpcUnaryCall(conn *websocket.Conn, pkt *yrpc.Ypacket) {
+	grpcCon, err := getGrpcConn(*grpcAddr)
+
+	if err != nil {
+		responseRpcErr(conn, pkt, err)
+		return
+	}
+
+	var replyB []byte
+	replyB, err = grpcCon.InvokeForward(context.Background(), pkt.Optstr, pkt.Body)
+	if err != nil {
+		responseRpcErr(conn, pkt, err)
+		return
+	} else {
+		responseRpcUnary(conn, pkt, replyB)
+	}
 }
 
 func yrpcNocareCall(conn *websocket.Conn, pkt *yrpc.Ypacket) {
+	grpcCon, err := getGrpcConn(*grpcAddr)
 
+	if err != nil {
+		return
+	}
+
+	_, _ = grpcCon.InvokeForward(context.Background(), pkt.Optstr, pkt.Body)
+}
+
+func responseRpcErr(conn *websocket.Conn, pkt *yrpc.Ypacket, err error) {
+	pkt.Res = -1
+	pkt.Optstr = err.Error()
+	pkt.Cmd = 4
+
+	_ = writeWebsocketPacket(conn, pkt)
+
+}
+
+func responseRpcUnary(conn *websocket.Conn, reqpkt *yrpc.Ypacket, result []byte) {
+	reqpkt.Body = result
+	reqpkt.Res = 0
+
+	writeWebsocketPacket(conn, reqpkt)
+}
+
+func getGrpcConn(grpcAddr string) (conn *grpc.ClientConn, err error) {
+	grpConn, err := grpc.Dial(grpcAddr, grpc.WithInsecure())
+	if err != nil {
+		return nil, err
+	}
+
+	return grpConn, nil
 }
