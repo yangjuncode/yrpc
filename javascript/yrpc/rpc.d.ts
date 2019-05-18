@@ -2,96 +2,90 @@ import * as $protobuf from "protobufjs";
 /** Namespace yrpc. */
 export namespace yrpc {
 
-    /** Properties of a ymsg. */
-    interface Iymsg {
+    /** Properties of a Ypacket. */
+    interface IYpacket {
 
-        /** ymsg len */
+        /** Ypacket len */
         len?: (number|null);
 
-        /** ymsg cmd */
+        /** Ypacket cmd */
         cmd?: (number|null);
 
-        /** ymsg sid */
-        sid?: (Uint8Array|null);
-
-        /** ymsg cid */
+        /** Ypacket cid */
         cid?: (number|null);
 
-        /** ymsg no */
+        /** Ypacket no */
         no?: (number|null);
 
-        /** ymsg res */
+        /** Ypacket res */
         res?: (number|null);
 
-        /** ymsg body */
+        /** Ypacket body */
         body?: (Uint8Array|null);
 
-        /** ymsg optstr */
+        /** Ypacket optstr */
         optstr?: (string|null);
 
-        /** ymsg optbin */
+        /** Ypacket optbin */
         optbin?: (Uint8Array|null);
 
-        /** ymsg meta */
+        /** Ypacket meta */
         meta?: (string[]|null);
     }
 
-    /** Represents a ymsg. */
-    class ymsg implements Iymsg {
+    /** Represents a Ypacket. */
+    class Ypacket implements IYpacket {
 
         /**
-         * Constructs a new ymsg.
+         * Constructs a new Ypacket.
          * @param [properties] Properties to set
          */
-        constructor(properties?: yrpc.Iymsg);
+        constructor(properties?: yrpc.IYpacket);
 
-        /** ymsg len. */
+        /** Ypacket len. */
         public len: number;
 
-        /** ymsg cmd. */
+        /** Ypacket cmd. */
         public cmd: number;
 
-        /** ymsg sid. */
-        public sid: Uint8Array;
-
-        /** ymsg cid. */
+        /** Ypacket cid. */
         public cid: number;
 
-        /** ymsg no. */
+        /** Ypacket no. */
         public no: number;
 
-        /** ymsg res. */
+        /** Ypacket res. */
         public res: number;
 
-        /** ymsg body. */
+        /** Ypacket body. */
         public body: Uint8Array;
 
-        /** ymsg optstr. */
+        /** Ypacket optstr. */
         public optstr: string;
 
-        /** ymsg optbin. */
+        /** Ypacket optbin. */
         public optbin: Uint8Array;
 
-        /** ymsg meta. */
+        /** Ypacket meta. */
         public meta: string[];
 
         /**
-         * Encodes the specified ymsg message. Does not implicitly {@link yrpc.ymsg.verify|verify} messages.
-         * @param message ymsg message or plain object to encode
+         * Encodes the specified Ypacket message. Does not implicitly {@link yrpc.Ypacket.verify|verify} messages.
+         * @param message Ypacket message or plain object to encode
          * @param [writer] Writer to encode to
          * @returns Writer
          */
-        public static encode(message: yrpc.Iymsg, writer?: $protobuf.Writer): $protobuf.Writer;
+        public static encode(message: yrpc.IYpacket, writer?: $protobuf.Writer): $protobuf.Writer;
 
         /**
-         * Decodes a ymsg message from the specified reader or buffer.
+         * Decodes a Ypacket message from the specified reader or buffer.
          * @param reader Reader or buffer to decode from
          * @param [length] Message length if known beforehand
-         * @returns ymsg
+         * @returns Ypacket
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): yrpc.ymsg;
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): yrpc.Ypacket;
     }
 
     /** Properties of a Yempty. */
@@ -156,74 +150,6 @@ export namespace yrpc {
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
         public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): yrpc.Ynocare;
-    }
-
-    /** Properties of a Ylogin. */
-    interface IYlogin {
-
-        /** Ylogin type */
-        type?: (number|null);
-
-        /** Ylogin name */
-        name?: (string|null);
-
-        /** Ylogin passwordEncrypt */
-        passwordEncrypt?: (number|null);
-
-        /** Ylogin passwordHash */
-        passwordHash?: (string|null);
-
-        /** Ylogin sys */
-        sys?: (string|null);
-
-        /** Ylogin time */
-        time?: (string|null);
-    }
-
-    /** Represents a Ylogin. */
-    class Ylogin implements IYlogin {
-
-        /**
-         * Constructs a new Ylogin.
-         * @param [properties] Properties to set
-         */
-        constructor(properties?: yrpc.IYlogin);
-
-        /** Ylogin type. */
-        public type: number;
-
-        /** Ylogin name. */
-        public name: string;
-
-        /** Ylogin passwordEncrypt. */
-        public passwordEncrypt: number;
-
-        /** Ylogin passwordHash. */
-        public passwordHash: string;
-
-        /** Ylogin sys. */
-        public sys: string;
-
-        /** Ylogin time. */
-        public time: string;
-
-        /**
-         * Encodes the specified Ylogin message. Does not implicitly {@link yrpc.Ylogin.verify|verify} messages.
-         * @param message Ylogin message or plain object to encode
-         * @param [writer] Writer to encode to
-         * @returns Writer
-         */
-        public static encode(message: yrpc.IYlogin, writer?: $protobuf.Writer): $protobuf.Writer;
-
-        /**
-         * Decodes a Ylogin message from the specified reader or buffer.
-         * @param reader Reader or buffer to decode from
-         * @param [length] Message length if known beforehand
-         * @returns Ylogin
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): yrpc.Ylogin;
     }
 
     /** Properties of an UnixTime. */
