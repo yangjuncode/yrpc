@@ -2,3 +2,5 @@
 \.idea/
 
 cmd/test_server/test_server
+
+cmd/protoc-gen-yrpc/protoc-gen-yrpc
