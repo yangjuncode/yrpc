@@ -211,7 +211,7 @@ message Ypacket {
 
 - 双向ping用于确认对方是否还在线和保持心跳
 
-- ping socket连接的对方: Ypacket.cmd=14 res=0, cid=0
+- ping socket连接的对方: Ypacket.cmd=14 res=0
 
 - pong: Ypacket.cmd=14 res=1 cid为原值
 
