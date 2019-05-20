@@ -1,4 +1,6 @@
 import * as $protobuf from "protobufjs";
+import * as Long from 'long';
+
 /** Namespace yrpc. */
 export namespace yrpc {
 

@@ -372,7 +372,7 @@ var TrpcCon = /** @class */ (function () {
             return;
         }
         if (!sendOk) {
-            if (!callOpt.OnLocalErr) {
+            if (callOpt.OnLocalErr) {
                 callOpt.OnLocalErr("can not send to socket");
             }
             return;
@@ -382,7 +382,7 @@ var TrpcCon = /** @class */ (function () {
         }
         var timeoutId = window.setTimeout(function () {
             ypubsub_1.default.unsubscribeInt(rpc.cid);
-            if (!callOpt.OnTimeout) {
+            if (callOpt.OnTimeout) {
                 callOpt.OnTimeout();
             }
         }, callOpt.timeout * 1000);
@@ -390,12 +390,12 @@ var TrpcCon = /** @class */ (function () {
             switch (resRpc.cmd) {
                 case 2:
                     var res = resType.decode(resRpc.body);
-                    if (!callOpt.OnResult) {
+                    if (callOpt.OnResult) {
                         callOpt.OnResult(res, resRpc);
                     }
                     break;
                 case 4:
-                    if (!callOpt.OnServerErr) {
+                    if (callOpt.OnServerErr) {
                         callOpt.OnServerErr(resRpc);
                     }
                     break;

@@ -472,7 +472,7 @@ export class TrpcCon {
     }
 
     if (!sendOk) {
-      if (!callOpt.OnLocalErr) {
+      if (callOpt.OnLocalErr) {
         callOpt.OnLocalErr("can not send to socket")
       }
       return
@@ -482,7 +482,7 @@ export class TrpcCon {
     }
     let timeoutId: number = window.setTimeout(() => {
       ypubsub.unsubscribeInt(rpc.cid)
-      if (!callOpt.OnTimeout) {
+      if (callOpt.OnTimeout) {
         callOpt.OnTimeout()
       }
     }, callOpt.timeout * 1000)
@@ -492,12 +492,12 @@ export class TrpcCon {
       switch (resRpc.cmd) {
         case 2:
           let res = resType.decode(resRpc.body)
-          if (!callOpt.OnResult) {
+          if (callOpt.OnResult) {
             callOpt.OnResult(res, resRpc)
           }
           break
         case 4:
-          if (!callOpt.OnServerErr) {
+          if (callOpt.OnServerErr) {
             callOpt.OnServerErr(resRpc)
           }
           break
