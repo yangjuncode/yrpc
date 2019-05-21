@@ -15,12 +15,16 @@ type TmsgItem struct {
 	MsgDescriptorProto     *descriptor.DescriptorProto
 }
 
+func (this *TmsgItem) Key() string {
+	return this.PkgName + "." + this.MsgName
+}
+
 //all proto msg map
 // "pkgname.msgname" -> tmsgItem
-var AllProtoMsgs = make(map[string]*TmsgItem)
+var GlobalAllProtoMsgs = make(map[string]*TmsgItem)
 
 // "/pkgname.srvname/rpcname" -> TrpcItem
-var AllProtoRpcs = make(map[string]*TrpcItem)
+var GlobalAllProtoRpcs = make(map[string]*TrpcItem)
 
 func FillAllProtoMsgInfo(request *plugin.CodeGeneratorRequest) {
 	for _, fd := range request.GetProtoFile() {
@@ -35,12 +39,12 @@ func FillAllProtoMsgInfo(request *plugin.CodeGeneratorRequest) {
 				MsgDescriptorProto:     msg,
 			}
 
-			msgKey := msgItem.PkgName + "." + msgItem.MsgName
-			prev, exist := AllProtoMsgs[msgKey]
+			msgKey := msgItem.Key()
+			prev, exist := GlobalAllProtoMsgs[msgKey]
 			if exist {
-				log.Fatal("dup proto Msg Name:", prev, msgItem)
+				log.Fatal("dup proto Msg Name:", prev, msgItem, fd.GetName())
 			} else {
-				AllProtoMsgs[msgKey] = &msgItem
+				GlobalAllProtoMsgs[msgKey] = &msgItem
 			}
 		}
 	}
@@ -48,7 +52,7 @@ func FillAllProtoMsgInfo(request *plugin.CodeGeneratorRequest) {
 
 func FillAllProtoRpcInfo(request *plugin.CodeGeneratorRequest) {
 	for _, fd := range request.GetProtoFile() {
-		//Filename := ExtractFilename(fd.GetName())
+		Filename := ExtractFilename(fd.GetName())
 		pkgName := ProtoPackageName(fd)
 
 		for _, service := range fd.Service {
@@ -66,6 +70,7 @@ func FillAllProtoRpcInfo(request *plugin.CodeGeneratorRequest) {
 					serverStream = *rpc.ServerStreaming
 				}
 				rpcItem := TrpcItem{
+					FileName:            Filename,
 					PkgName:             pkgName,
 					ServiceName:         *service.Name,
 					MethodName:          *rpc.Name,
@@ -79,12 +84,12 @@ func FillAllProtoRpcInfo(request *plugin.CodeGeneratorRequest) {
 					RpcMethodDescriptor: rpc,
 				}
 
-				rpcKey := "/" + rpcItem.PkgName + "." + rpcItem.ServiceName + "/" + rpcItem.MethodName
-				prev, exist := AllProtoRpcs[rpcKey]
+				rpcKey := rpcItem.Key()
+				prev, exist := GlobalAllProtoRpcs[rpcKey]
 				if exist {
-					log.Fatal("dup proto rpc Name:", prev, rpcItem)
+					log.Fatal("dup proto rpc Name:", prev, rpcItem, fd.GetName())
 				} else {
-					AllProtoRpcs[rpcKey] = &rpcItem
+					GlobalAllProtoRpcs[rpcKey] = &rpcItem
 				}
 			}
 

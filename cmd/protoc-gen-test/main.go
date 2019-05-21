@@ -26,7 +26,7 @@ func main() {
 
 	yrpcgen.FillAllProtoGlobalInfo(&request)
 
-	for pkgMsg, msgitem := range yrpcgen.AllProtoMsgs {
+	for pkgMsg, msgitem := range yrpcgen.GlobalAllProtoMsgs {
 		log.Info().Msgf("%s:%v", pkgMsg, msgitem)
 	}
 

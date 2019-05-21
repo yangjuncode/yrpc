@@ -9,6 +9,7 @@ import (
 )
 
 type TrpcItem struct {
+	FileName      string
 	PkgName       string
 	ServiceName   string
 	MethodName    string
@@ -33,6 +34,10 @@ func (this *TrpcItem) Api() string {
 	}
 
 	return api
+}
+
+func (this *TrpcItem) Key() string {
+	return "/" + this.PkgName + "." + this.ServiceName + "/" + this.MethodName
 }
 
 func GetRpcVersionFromComment(srvComment string, methodComment string) (verion int) {
