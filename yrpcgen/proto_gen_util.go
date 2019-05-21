@@ -3,6 +3,7 @@ package yrpcgen
 import (
 	"errors"
 	"log"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -199,10 +200,17 @@ func GetProtoMsgFieldLeadingComments(fd *descriptor.FileDescriptorProto, msg *de
 	return nil, ""
 }
 
-//ExtractFilename (path is not removed)  path/filename.ext -> path/filename
+//ExtractFilename  path/filename.ext -> filename
 func ExtractFilename(filenameWithExt string) string {
 	var extension = filepath.Ext(filenameWithExt)
-	return filenameWithExt[0 : len(filenameWithExt)-len(extension)]
+	fileName := filenameWithExt[0 : len(filenameWithExt)-len(extension)]
+
+	sepPos := strings.Index(fileName, string(os.PathSeparator))
+	if sepPos < 0 {
+		return fileName
+	} else {
+		return fileName[sepPos+1:]
+	}
 }
 
 //ISOTimeFormat iso time format yyyy-mm-dd HH:MM:SS
