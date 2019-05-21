@@ -8,12 +8,13 @@ import (
 
 type TmsgItem struct {
 	Filename string
-	Pkg      string
-	Msg      string
+	PkgName  string
+	MsgName  string
 }
 
 //all proto msg map
-var AllProtoMsgInfos = make(map[string]TmsgItem)
+// "pkgname.msgname" -> tmsgItem
+var AllProtoMsgs = make(map[string]TmsgItem)
 
 func FillAllProtoMsgInfo(request *plugin.CodeGeneratorRequest) {
 	for _, fd := range request.GetProtoFile() {
@@ -22,15 +23,16 @@ func FillAllProtoMsgInfo(request *plugin.CodeGeneratorRequest) {
 		for _, msg := range fd.MessageType {
 			msgItem := TmsgItem{
 				Filename: Filename,
-				Pkg:      pkgName,
-				Msg:      *msg.Name,
+				PkgName:  pkgName,
+				MsgName:  *msg.Name,
 			}
 
-			prev, exist := AllProtoMsgInfos[msgItem.Msg]
+			msgKey := msgItem.PkgName + "." + msgItem.MsgName
+			prev, exist := AllProtoMsgs[msgKey]
 			if exist {
-				log.Fatal("dup Msg Name:", prev, msgItem)
+				log.Fatal("dup proto Msg Name:", prev, msgItem)
 			} else {
-				AllProtoMsgInfos[msgItem.Msg] = msgItem
+				AllProtoMsgs[msgKey] = msgItem
 			}
 		}
 	}
