@@ -199,7 +199,7 @@ func GetProtoMsgFieldLeadingComments(fd *descriptor.FileDescriptorProto, msg *de
 	return nil, ""
 }
 
-//ExtractFilename  filename.ext -> filename
+//ExtractFilename (path is not removed)  path/filename.ext -> path/filename
 func ExtractFilename(filenameWithExt string) string {
 	var extension = filepath.Ext(filenameWithExt)
 	return filenameWithExt[0 : len(filenameWithExt)-len(extension)]
