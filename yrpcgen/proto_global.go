@@ -26,6 +26,16 @@ var GlobalAllProtoMsgs = make(map[string]*TmsgItem)
 // "/pkgname.srvname/rpcname" -> TrpcItem
 var GlobalAllProtoRpcs = make(map[string]*TrpcItem)
 
+//get msgItem by msgKey
+func GetMsgItem(key string) *TmsgItem {
+	return GlobalAllProtoMsgs[key]
+}
+
+//get rpcItem by rpcKey
+func GetRpcItem(key string) *TrpcItem {
+	return GlobalAllProtoRpcs[key]
+}
+
 func FillAllProtoMsgInfo(request *plugin.CodeGeneratorRequest) {
 	for _, fd := range request.GetProtoFile() {
 		Filename := ExtractFilename(fd.GetName())
