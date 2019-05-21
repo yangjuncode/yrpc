@@ -3,6 +3,9 @@ package yrpcgen
 import (
 	"strconv"
 	"strings"
+
+	"github.com/golang/protobuf/protoc-gen-go/descriptor"
+	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
 )
 
 type TrpcItem struct {
@@ -17,6 +20,9 @@ type TrpcItem struct {
 	// Identifies if server streams multiple server messages
 	ServerStreaming bool
 	Version         int
+
+	RpcSrvDescriptor    *descriptor.ServiceDescriptorProto
+	RpcMethodDescriptor *descriptor.MethodDescriptorProto
 }
 
 func (this *TrpcItem) Api() string {
@@ -49,4 +55,12 @@ func GetVersionFromComment(comment string) (verion int) {
 	}
 
 	return 0
+}
+
+func YrpcGenJs(request *plugin.CodeGeneratorRequest) (genFiles []*plugin.CodeGeneratorResponse_File) {
+
+	//gen yrpc files
+	genFiles = append(genFiles, jsGenRpc(request)...)
+
+	return
 }

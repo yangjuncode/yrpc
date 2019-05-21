@@ -9,14 +9,6 @@ import (
 	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
 )
 
-func YrpcGenJs(request *plugin.CodeGeneratorRequest) (genFiles []*plugin.CodeGeneratorResponse_File) {
-
-	//gen yrpc files
-	genFiles = append(genFiles, jsGenRpc(request)...)
-
-	return
-}
-
 //jsGenRpc gen js yrpc code
 func jsGenRpc(request *plugin.CodeGeneratorRequest) (genFiles []*plugin.CodeGeneratorResponse_File) {
 
