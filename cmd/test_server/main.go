@@ -71,6 +71,7 @@ func yrpcWebsocket(w http.ResponseWriter, r *http.Request) {
 }
 
 func processingOneWebsocket(conn *websocket.Conn) {
+	log.Info().Str("ip", conn.RemoteAddr().String()).Msg("got one ws connected")
 	for {
 		//conn.SetReadDeadline(time.Now().Add(time.Minute * 10))
 
