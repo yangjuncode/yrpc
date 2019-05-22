@@ -1,5 +1,5 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
+exports.__esModule = true;
 var rpc_1 = require("./rpc");
 var pako_1 = require("pako");
 var mapUtil_1 = require("./mapUtil");
@@ -22,7 +22,7 @@ var TRpcStream = /** @class */ (function () {
         this.apiVerion = v;
         this.resType = resType;
         this.cid = exports.rpcCon.NewCid();
-        ypubsub_1.default.subscribeInt(this.cid, this.onRpc);
+        ypubsub_1["default"].subscribeInt(this.cid, this.onRpc);
         if (!callOpt) {
             callOpt = new TCallOption();
             callOpt.timeout = 30;
@@ -36,7 +36,7 @@ var TRpcStream = /** @class */ (function () {
         }, 5000);
     }
     TRpcStream.prototype.clearCall = function () {
-        ypubsub_1.default.unsubscribeInt(this.cid);
+        ypubsub_1["default"].unsubscribeInt(this.cid);
         if (this.intervalTmrId >= 0) {
             clearInterval(this.intervalTmrId);
             this.intervalTmrId = -1;
@@ -212,7 +212,7 @@ var TrpcCon = /** @class */ (function () {
                     throw new Error("no lz4 support now");
                     break;
                 case 0x00020000: //zlib
-                    rpc.body = pako_1.default.inflate(rpc.body);
+                    rpc.body = pako_1["default"].inflate(rpc.body);
                     break;
             }
         }
@@ -223,7 +223,7 @@ var TrpcCon = /** @class */ (function () {
                     throw new Error("no lz4 support now");
                     break;
                 case 0x00200000: //zlib
-                    rpc.optbin = pako_1.default.inflate(rpc.optbin);
+                    rpc.optbin = pako_1["default"].inflate(rpc.optbin);
                     break;
             }
         }
@@ -315,8 +315,8 @@ var TrpcCon = /** @class */ (function () {
         rpc.optstr = subject;
         this.sendRpc(rpc);
         if (!FnMsg) {
-            this.OnceSubscribeList.delete(subject);
-            this.SubscribeList.delete(subject);
+            this.OnceSubscribeList["delete"](subject);
+            this.SubscribeList["delete"](subject);
         }
         else {
             mapUtil_1.delCallbackFromMap(subject, FnMsg, this.OnceSubscribeList);
@@ -326,7 +326,7 @@ var TrpcCon = /** @class */ (function () {
     TrpcCon.prototype.NewCid = function () {
         while (true) {
             var newCid = this.genCid();
-            if (ypubsub_1.default.hasSubscribeInt(newCid)) {
+            if (ypubsub_1["default"].hasSubscribeInt(newCid)) {
                 continue;
             }
             return newCid;
@@ -381,12 +381,12 @@ var TrpcCon = /** @class */ (function () {
             callOpt.timeout = 30;
         }
         var timeoutId = window.setTimeout(function () {
-            ypubsub_1.default.unsubscribeInt(rpc.cid);
+            ypubsub_1["default"].unsubscribeInt(rpc.cid);
             if (!callOpt.OnTimeout) {
                 callOpt.OnTimeout();
             }
         }, callOpt.timeout * 1000);
-        ypubsub_1.default.subscribeOnceInt(rpc.cid, function (resRpc) {
+        ypubsub_1["default"].subscribeOnceInt(rpc.cid, function (resRpc) {
             switch (resRpc.cmd) {
                 case 2:
                     var res = resType.decode(resRpc.body);

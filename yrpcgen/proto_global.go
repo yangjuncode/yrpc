@@ -2,6 +2,7 @@ package yrpcgen
 
 import (
 	"log"
+	"strings"
 
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
@@ -18,6 +19,9 @@ type TmsgItem struct {
 func (this *TmsgItem) Key() string {
 	return this.PkgName + "." + this.MsgName
 }
+func (this *TmsgItem) ImportName() string {
+	return strings.Title(this.PkgName) + strings.Title(this.Filename)
+}
 
 //all proto msg map
 // "pkgname.msgname" -> tmsgItem
@@ -29,6 +33,16 @@ var GlobalAllProtoRpcs = make(map[string]*TrpcItem)
 //get msgItem by msgKey
 func GetMsgItem(key string) *TmsgItem {
 	return GlobalAllProtoMsgs[key]
+}
+
+//get msg filename
+func GetMsgFilename(msgKey string) string {
+	msgItem := GetMsgItem(msgKey)
+	if msgItem != nil {
+		return msgItem.Filename
+	}
+
+	return ""
 }
 
 //get rpcItem by rpcKey

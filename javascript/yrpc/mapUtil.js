@@ -1,5 +1,5 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
+exports.__esModule = true;
 function isCallbackInMap(key, callBack, _map) {
     var mapItem = _map.get(key);
     if (!mapItem) {
