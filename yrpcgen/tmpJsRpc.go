@@ -1,28 +1,18 @@
 package yrpcgen
 
-var tmpJsRpcHead = `
-
-
-import {Writer} from 'protobufjs'
-
-import {rpcCon} from '@/yrpc/yrpc'
-import {TCallOption} from '@/yrpc/yrpc'
-import {TRpcStream} from '@/yrpc/yrpc'
-
-`
-
 var tmpJsRpcClass = `
 {{$className := .className}}
-class {{$className}} {
+{{$srvVersion := .srvVersion}}
+export class {{$className}} {
+public static readonly ver={{$srvVersion}}
 {{ range $no,$rpc := .unaryNocareCalls }}
- public static {{$rpc.MethodName}}(req:{{$rpc.InputType}}):Error | null{
+ public static {{$rpc.MethodName}}(req:{{$rpc.InputType}}):void{
 	let w:Writer={{$rpc.InputType}}.encode(req)
 	let reqData=w.finish()
 	
 	let api='{{$rpc.Api}}'
-	const v={{$rpc.Version}}
 
-	return rpcCon.NocareCall(reqData,api,v)
+	rpcCon.NocareCall(reqData,api,{{$rpc.Version}})
 	
 }
 {{ end }}
@@ -33,9 +23,8 @@ class {{$className}} {
 	let reqData=w.finish()
 	
 	let api='{{$rpc.Api}}'
-	const v={{$rpc.Version}}
 
-	return rpcCon.UnaryCall(reqData,api,v,{{$rpc.OutputType}},callOpt)
+	return rpcCon.UnaryCall(reqData,api,{{$rpc.Version}},{{$rpc.OutputType}},callOpt)
 	
 }
 {{ end }}
@@ -43,9 +32,8 @@ class {{$className}} {
 {{ range $no,$rpc := .clientStreamCalls }}
  public static {{$rpc.MethodName}}(req:{{$rpc.InputType}},callOpt?:TCallOption):TRpcStream{
 	let api='{{$rpc.Api}}'
-	const v={{$rpc.Version}}
 	
-	let r=new TRpcStream(api,v,{{$rpc.OutputType}},callOpt)
+	let r=new TRpcStream(api,{{$rpc.Version}},{{$rpc.OutputType}},callOpt)
 	
 	r.sendFirst(req)
 
@@ -56,8 +44,7 @@ class {{$className}} {
 {{ range $no,$rpc := .serverStreamCalls }}
  public static {{$rpc.MethodName}}(req:{{$rpc.InputType}},callOpt?:TCallOption):TRpcStream{
 	let api='{{$rpc.Api}}'
-	const v={{$rpc.Version}}
-	let r=new TRpcStream(api,v,{{$rpc.OutputType}},callOpt)
+	let r=new TRpcStream(api,{{$rpc.Version}},{{$rpc.OutputType}},callOpt)
 
 	r.sendFirst(req)
 
@@ -68,8 +55,7 @@ class {{$className}} {
 {{ range $no,$rpc := .bidiStreamCalls }}
  public static {{$rpc.MethodName}}(req:{{$rpc.InputType}},callOpt?:TCallOption):TRpcStream{
 	let api='{{$rpc.Api}}'
-	const v={{$rpc.Version}}
-	let r=new TRpcStream(api,v,{{$rpc.OutputType}},callOpt)
+	let r=new TRpcStream(api,{{$rpc.Version}},{{$rpc.OutputType}},callOpt)
 
 	r.sendFirst(req)
 

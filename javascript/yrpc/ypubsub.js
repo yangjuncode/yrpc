@@ -1,5 +1,5 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
+exports.__esModule = true;
 var Tpubsub = /** @class */ (function () {
     function Tpubsub() {
         this.fns = new Map();
@@ -22,7 +22,7 @@ var Tpubsub = /** @class */ (function () {
         this.publishFn(subject, args, this.fns);
         this.publishFn(subject, args, this.fnsOnce);
         // delete fnsOnce register callback
-        this.fnsOnce.delete(subject);
+        this.fnsOnce["delete"](subject);
     };
     Tpubsub.prototype.subscribe = function (subject, Fn) {
         var fns = this.fns.get(subject) || [];
@@ -42,7 +42,7 @@ var Tpubsub = /** @class */ (function () {
     };
     Tpubsub.prototype.unsubscribe = function (subject, Fn) {
         if (!Fn) {
-            this.fns.delete(subject);
+            this.fns["delete"](subject);
             return;
         }
         var fns = this.fns.get(subject) || [];
@@ -69,7 +69,7 @@ var Tpubsub = /** @class */ (function () {
         this.publishFnInt(subject, args, this.fnsInt);
         this.publishFnInt(subject, args, this.fnsIntOnce);
         // delete fnsOnce register callback
-        this.fnsIntOnce.delete(subject);
+        this.fnsIntOnce["delete"](subject);
     };
     Tpubsub.prototype.subscribeInt = function (subject, Fn) {
         var fns = this.fnsInt.get(subject) || [];
@@ -89,7 +89,7 @@ var Tpubsub = /** @class */ (function () {
     };
     Tpubsub.prototype.unsubscribeInt = function (subject, Fn) {
         if (!Fn) {
-            this.fnsInt.delete(subject);
+            this.fnsInt["delete"](subject);
             return;
         }
         var fns = this.fnsInt.get(subject) || [];
@@ -110,4 +110,4 @@ var Tpubsub = /** @class */ (function () {
     return Tpubsub;
 }());
 exports.Tpubsub = Tpubsub;
-exports.default = new Tpubsub();
+exports["default"] = new Tpubsub();
