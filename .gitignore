@@ -9,3 +9,5 @@ javascript/yrpc/node_modules/
 javascript/yrpc/.idea/
 
 cmd/protoc-gen-test/protoc-gen-test
+
+demo/demo/
