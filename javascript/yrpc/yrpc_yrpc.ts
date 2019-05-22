@@ -1,9 +1,8 @@
-import {yrpc} from './rpc'
-
 import pako from 'pako'
 
 import {addCallback2Map, delCallbackFromMap, isCallbackInMap} from './mapUtil'
-import ypubsub from './ypubsub';
+import {yrpc} from './rpc'
+import ypubsub from './ypubsub'
 
 export interface IResult {
   (res: any, rpcCmd: yrpc.Ypacket): void
@@ -238,7 +237,7 @@ export class TrpcCon {
     if (!this.wsCon) {
       return false
     }
-    if (this.wsCon.readyState !== 2) {
+    if (this.wsCon.readyState !== WebSocket.OPEN) {
       return false
     }
     return true
@@ -248,7 +247,7 @@ export class TrpcCon {
     if (!this.wsCon) {
       return false
     }
-    if (this.wsCon.readyState !== 2) {
+    if (this.wsCon.readyState !== WebSocket.OPEN) {
       return false
     }
 
@@ -272,7 +271,7 @@ export class TrpcCon {
       let zipType = rpc.cmd & 0x000f0000
       switch (zipType) {
         case 0x00010000://lz4
-          throw new Error("no lz4 support now")
+          throw new Error('no lz4 support now')
           break
         case 0x00020000://zlib
           rpc.body = pako.inflate(rpc.body)
@@ -284,7 +283,7 @@ export class TrpcCon {
       let zipType = rpc.cmd & 0x00f00000
       switch (zipType) {
         case 0x00100000://lz4
-          throw new Error("no lz4 support now")
+          throw new Error('no lz4 support now')
           break
         case 0x00200000://zlib
           rpc.optbin = pako.inflate(rpc.optbin)
@@ -294,15 +293,15 @@ export class TrpcCon {
 
     rpc.cmd = rpc.cmd & 0xffff
     switch (rpc.cmd) {
-        // publish response
+      // publish response
       case 11:
         break
 
-        // sub/unsub response
+      // sub/unsub response
       case 12:
         break
 
-        // nats recv msg
+      // nats recv msg
       case 13:
         break
     }
@@ -310,7 +309,7 @@ export class TrpcCon {
   }
 
   onWsErr(ev: Event): void {
-    console.log("ws err:", ev);
+    console.log('ws err:', ev)
   }
 
   onWsClose(ev: CloseEvent): void {
@@ -326,7 +325,7 @@ export class TrpcCon {
   }
 
   onWsOpen(ev: Event) {
-    console.log("ws open:", ev);
+    console.log('ws open:', ev)
   }
 
 
@@ -473,7 +472,7 @@ export class TrpcCon {
 
     if (!sendOk) {
       if (callOpt.OnLocalErr) {
-        callOpt.OnLocalErr("can not send to socket")
+        callOpt.OnLocalErr('can not send to socket')
       }
       return
     }
@@ -502,7 +501,7 @@ export class TrpcCon {
           }
           break
         default:
-          console.log("unary call bad:res:", resRpc);
+          console.log('unary call bad:res:', resRpc)
       }
       clearTimeout(timeoutId)
     })
