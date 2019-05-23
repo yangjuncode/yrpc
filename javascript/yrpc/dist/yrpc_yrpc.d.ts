@@ -1,4 +1,4 @@
-import { yrpc } from './rpc';
+import { yrpc } from './yrpc';
 export interface IResult {
     (res: any, rpcCmd: yrpc.Ypacket): void;
 }

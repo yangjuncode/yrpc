@@ -1,7 +1,7 @@
 "use strict";
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 function isCallbackInMap(key, callBack, _map) {
-    var mapItem = _map.get(key);
+    let mapItem = _map.get(key);
     if (!mapItem) {
         return false;
     }
@@ -9,7 +9,7 @@ function isCallbackInMap(key, callBack, _map) {
 }
 exports.isCallbackInMap = isCallbackInMap;
 function addCallback2Map(key, callBack, _map) {
-    var calbacks = _map.get(key);
+    let calbacks = _map.get(key);
     if (!calbacks) {
         calbacks = [callBack];
     }
@@ -20,7 +20,7 @@ function addCallback2Map(key, callBack, _map) {
 }
 exports.addCallback2Map = addCallback2Map;
 function delCallbackFromMap(key, callBack, _map) {
-    var calbacks = _map.get(key);
+    let calbacks = _map.get(key);
     if (!calbacks) {
         return;
     }
