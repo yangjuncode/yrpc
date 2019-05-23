@@ -30,7 +30,7 @@ export interface ICallOption {
     OnLocalErr?: ILocalErr
     OnTimeout?: Function
     OnCancel?: ICancel
-    Meta?: Map<string, string>
+    Meta?: TYrpcMeta
 }
 
 export class TCallOption implements ICallOption {
@@ -41,12 +41,77 @@ export class TCallOption implements ICallOption {
     OnLocalErr?: ILocalErr
     OnTimeout?: Function
     OnCancel?: ICancel
-    Meta?: Map<string, string>
+    Meta?: TYrpcMeta
 
     constructor(options?: ICallOption) {
         options && Object.assign(this, options)
         if (!this.timeout || this.timeout <= 0) {
             this.timeout = 60
+        }
+    }
+}
+
+export class TYrpcMeta {
+    Meta?: Map<string, string>
+
+    initMetaMap() {
+        if (!this.Meta) {
+            this.Meta = new Map<string, string>()
+        }
+    }
+
+    addMeta(key: string, val: string) {
+        this.initMetaMap()
+        // @ts-ignore
+        this.Meta.set(key, val)
+    }
+
+    addMetas(metas?: Map<string, string>) {
+        if (!metas) {
+            return
+        }
+        this.initMetaMap()
+
+        metas.forEach((value, key) => {
+            // @ts-ignore
+            this.Meta.set(key, value)
+        })
+    }
+
+    getVal(key: string): string {
+        if (!this.Meta) {
+            return ""
+        }
+        let val = this.Meta.get(key)
+        if (val) {
+            return val
+        } else {
+            return ""
+        }
+    }
+
+    encodeYrpcMeta(): string[] {
+        if (!this.Meta) {
+            return []
+        }
+
+        let r: string[] = []
+        this.Meta.forEach((value, key) => {
+            r.push(key)
+            r.push(value)
+        })
+
+        return r
+    }
+
+    decodeYrpcMeta(pkt: yrpc.Ypacket) {
+        if (pkt.meta.length === 0) {
+            return
+        }
+        this.initMetaMap()
+        for (let i = 1; i < pkt.meta.length; i += 2) {
+            // @ts-ignore
+            this.Meta.set(pkt.meta[i - 1], pkt.meta[i])
         }
     }
 }
@@ -427,40 +492,47 @@ export class TrpcCon {
     }
 
     ping(): void {
-        let rpc = new yrpc.Ypacket()
-        rpc.cmd = 3
-        this.sendRpcPacket(rpc)
+        let pkt = new yrpc.Ypacket()
+        pkt.cmd = 14
+        this.sendRpcPacket(pkt)
 
     }
 
-    NocareCall(reqData: Uint8Array, api: string, v: number): void {
-        let rpc = new yrpc.Ypacket()
+    AssignPacketMeta(pkt: yrpc.Ypacket, v: number, callOpt?: TCallOption) {
+        let meta = callOpt ? callOpt.Meta : undefined
+
         if (v > 0) {
-            rpc.cmd = 10 | (v << 24)
+            if (!meta) {
+                meta = new TYrpcMeta()
+            }
 
-        } else {
-            rpc.cmd = 10
+            meta.addMeta("ver", v + '')
+            pkt.meta = meta.encodeYrpcMeta()
         }
-        rpc.body = reqData
-        rpc.optstr = api
-
-        this.sendRpcPacket(rpc)
     }
 
-    UnaryCall(reqData: Uint8Array, api: string, v: number, resType: any, callOpt?: TCallOption) {
-        let rpc = new yrpc.Ypacket()
+    NocareCall(reqData: Uint8Array, api: string, v: number, callOpt?: TCallOption): void {
+        let pkt = new yrpc.Ypacket()
+        pkt.cmd = 2
+        pkt.body = reqData
+        pkt.optstr = api
 
-        if (v > 0) {
-            rpc.cmd = 1 | (v << 24)
+        this.AssignPacketMeta(pkt, v, callOpt)
 
-        } else {
-            rpc.cmd = 1
-        }
-        rpc.cid = rpcCon.NewCid()
-        rpc.body = reqData
-        rpc.optstr = api
+        this.sendRpcPacket(pkt)
+    }
 
-        let sendOk = this.sendRpcPacket(rpc)
+    UnaryCall(reqData: Uint8Array, api: string, v: number, resultType: any, callOpt?: TCallOption) {
+        let pkt = new yrpc.Ypacket()
+
+        pkt.cmd = 1
+        pkt.cid = rpcCon.NewCid()
+        pkt.body = reqData
+        pkt.optstr = api
+
+        this.AssignPacketMeta(pkt, v, callOpt)
+
+        let sendOk = this.sendRpcPacket(pkt)
 
         if (!callOpt) {
             return
@@ -468,7 +540,7 @@ export class TrpcCon {
 
         if (!sendOk) {
             if (callOpt.OnLocalErr) {
-                callOpt.OnLocalErr('can not send to socket')
+                callOpt.OnLocalErr('can not send to socket:' + api)
             }
             return
         }
@@ -476,28 +548,28 @@ export class TrpcCon {
             callOpt.timeout = 30
         }
         let timeoutId: number = window.setTimeout(() => {
-            ypubsub.unsubscribeInt(rpc.cid)
+            ypubsub.unsubscribeInt(pkt.cid)
             if (callOpt.OnTimeout) {
                 callOpt.OnTimeout()
             }
         }, callOpt.timeout * 1000)
 
 
-        ypubsub.subscribeOnceInt(rpc.cid, function (resRpc: yrpc.Ypacket) {
-            switch (resRpc.cmd) {
-                case 2:
-                    let res = resType.decode(resRpc.body)
+        ypubsub.subscribeOnceInt(pkt.cid, function (resPkt: yrpc.Ypacket) {
+            switch (resPkt.cmd) {
+                case 1:
+                    let res = resultType.decode(resPkt.body)
                     if (callOpt.OnResult) {
-                        callOpt.OnResult(res, resRpc)
+                        callOpt.OnResult(res, resPkt)
                     }
                     break
                 case 4:
                     if (callOpt.OnServerErr) {
-                        callOpt.OnServerErr(resRpc)
+                        callOpt.OnServerErr(resPkt)
                     }
                     break
                 default:
-                    console.log('unary call bad:res:', resRpc)
+                    console.log('unary call bad:res:', api, resPkt)
             }
             clearTimeout(timeoutId)
         })
