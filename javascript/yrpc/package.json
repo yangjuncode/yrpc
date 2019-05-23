@@ -1,7 +1,8 @@
 {
   "name": "yrpc",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "dist/yrpc_yrpc.js",
+  "typings": "dist/yrpc_yrpc.d.ts",
   "license": "MIT",
   "dependencies": {
     "pako": "^1.0.8",

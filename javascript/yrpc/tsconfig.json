@@ -7,7 +7,8 @@
     "lib": [
       "dom",
       "esnext"
-    ]
+    ],
+    "outDir": "dist"
   },
   "exclude": [
     "node_modules"
