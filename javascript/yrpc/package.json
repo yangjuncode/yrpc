@@ -4,6 +4,9 @@
   "main": "dist/yrpc_yrpc.js",
   "typings": "dist/yrpc_yrpc.d.ts",
   "license": "MIT",
+  "scripts": {
+    "build": "./build.sh"
+  },
   "dependencies": {
     "pako": "^1.0.8",
     "protobufjs": "^6.8.8"
