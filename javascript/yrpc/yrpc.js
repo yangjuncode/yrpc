@@ -1,22 +1,20 @@
 /*eslint-disable block-scoped-var, id-length, no-control-regex, no-magic-numbers, no-prototype-builtins, no-redeclare, no-shadow, no-var, sort-vars*/
-"use strict";
-
-var $protobuf = require("protobufjs/minimal");
+import * as $protobuf from "protobufjs/minimal";
 
 // Common aliases
-var $Reader = $protobuf.Reader, $Writer = $protobuf.Writer, $util = $protobuf.util;
+const $Reader = $protobuf.Reader, $Writer = $protobuf.Writer, $util = $protobuf.util;
 
 // Exported root namespace
-var $root = $protobuf.roots["default"] || ($protobuf.roots["default"] = {});
+const $root = $protobuf.roots["default"] || ($protobuf.roots["default"] = {});
 
-$root.yrpc = (function() {
+export const yrpc = $root.yrpc = (() => {
 
     /**
      * Namespace yrpc.
      * @exports yrpc
      * @namespace
      */
-    var yrpc = {};
+    const yrpc = {};
 
     yrpc.Ypacket = (function() {
 
@@ -46,7 +44,7 @@ $root.yrpc = (function() {
         function Ypacket(properties) {
             this.meta = [];
             if (properties)
-                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
                     if (properties[keys[i]] != null)
                         this[keys[i]] = properties[keys[i]];
         }
@@ -152,7 +150,7 @@ $root.yrpc = (function() {
             if (message.optbin != null && message.hasOwnProperty("optbin"))
                 writer.uint32(/* id 12, wireType 2 =*/98).bytes(message.optbin);
             if (message.meta != null && message.meta.length)
-                for (var i = 0; i < message.meta.length; ++i)
+                for (let i = 0; i < message.meta.length; ++i)
                     writer.uint32(/* id 13, wireType 2 =*/106).string(message.meta[i]);
             return writer;
         };
@@ -171,9 +169,9 @@ $root.yrpc = (function() {
         Ypacket.decode = function decode(reader, length) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
-            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.yrpc.Ypacket();
+            let end = length === undefined ? reader.len : reader.pos + length, message = new $root.yrpc.Ypacket();
             while (reader.pos < end) {
-                var tag = reader.uint32();
+                let tag = reader.uint32();
                 switch (tag >>> 3) {
                 case 1:
                     message.len = reader.fixed32();
@@ -233,7 +231,7 @@ $root.yrpc = (function() {
          */
         function Yempty(properties) {
             if (properties)
-                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
                     if (properties[keys[i]] != null)
                         this[keys[i]] = properties[keys[i]];
         }
@@ -267,9 +265,9 @@ $root.yrpc = (function() {
         Yempty.decode = function decode(reader, length) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
-            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.yrpc.Yempty();
+            let end = length === undefined ? reader.len : reader.pos + length, message = new $root.yrpc.Yempty();
             while (reader.pos < end) {
-                var tag = reader.uint32();
+                let tag = reader.uint32();
                 switch (tag >>> 3) {
                 default:
                     reader.skipType(tag & 7);
@@ -300,7 +298,7 @@ $root.yrpc = (function() {
          */
         function Ynocare(properties) {
             if (properties)
-                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
                     if (properties[keys[i]] != null)
                         this[keys[i]] = properties[keys[i]];
         }
@@ -334,9 +332,9 @@ $root.yrpc = (function() {
         Ynocare.decode = function decode(reader, length) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
-            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.yrpc.Ynocare();
+            let end = length === undefined ? reader.len : reader.pos + length, message = new $root.yrpc.Ynocare();
             while (reader.pos < end) {
-                var tag = reader.uint32();
+                let tag = reader.uint32();
                 switch (tag >>> 3) {
                 default:
                     reader.skipType(tag & 7);
@@ -369,7 +367,7 @@ $root.yrpc = (function() {
          */
         function UnixTime(properties) {
             if (properties)
-                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
                     if (properties[keys[i]] != null)
                         this[keys[i]] = properties[keys[i]];
         }
@@ -423,9 +421,9 @@ $root.yrpc = (function() {
         UnixTime.decode = function decode(reader, length) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
-            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.yrpc.UnixTime();
+            let end = length === undefined ? reader.len : reader.pos + length, message = new $root.yrpc.UnixTime();
             while (reader.pos < end) {
-                var tag = reader.uint32();
+                let tag = reader.uint32();
                 switch (tag >>> 3) {
                 case 1:
                     message.timeUnix = reader.sint64();
@@ -466,7 +464,7 @@ $root.yrpc = (function() {
          */
         function natsOption(properties) {
             if (properties)
-                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
                     if (properties[keys[i]] != null)
                         this[keys[i]] = properties[keys[i]];
         }
@@ -540,9 +538,9 @@ $root.yrpc = (function() {
         natsOption.decode = function decode(reader, length) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
-            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.yrpc.natsOption();
+            let end = length === undefined ? reader.len : reader.pos + length, message = new $root.yrpc.natsOption();
             while (reader.pos < end) {
-                var tag = reader.uint32();
+                let tag = reader.uint32();
                 switch (tag >>> 3) {
                 case 1:
                     message.origSid = reader.bytes();
@@ -570,4 +568,4 @@ $root.yrpc = (function() {
     return yrpc;
 })();
 
-module.exports = $root;
+export { $root as default };

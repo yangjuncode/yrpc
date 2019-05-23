@@ -1,8 +1,8 @@
 import pako from 'pako'
 
 import {addCallback2Map, delCallbackFromMap, isCallbackInMap} from './mapUtil'
-import {yrpc} from './yrpc'
 import ypubsub from './ypubsub'
+import {yrpc} from './yrpc'
 
 export interface IResult {
   (res: any, rpcCmd: yrpc.Ypacket): void
@@ -25,16 +25,32 @@ export interface ICancel {
   (rpcCmd: yrpc.Ypacket): void
 }
 
-export class TCallOption {
-  //timeout in seconds
-  timeout: number = 30
-  OnResult: IResult
-  OnServerErr: IServerErr
-  OnLocalErr: ILocalErr
-  OnPong: IPong
-  OnTimeout: Function
-  OnCancel: ICancel
+export interface ICallOption {
+  timeout?: number
+  OnResult?: IResult
+  OnServerErr?: IServerErr
+  OnLocalErr?: ILocalErr
+  OnPong?: IPong
+  OnTimeout?: Function
+  OnCancel?: ICancel
+}
 
+export class TCallOption implements ICallOption {
+  //timeout in seconds
+  timeout: number
+  OnResult?: IResult
+  OnServerErr?: IServerErr
+  OnLocalErr?: ILocalErr
+  OnPong?: IPong
+  OnTimeout?: Function
+  OnCancel?: ICancel
+
+  constructor(options?: ICallOption) {
+    options && Object.assign(this, options)
+    if (!this.timeout || this.timeout <= 0) {
+      this.timeout = 30
+    }
+  }
 }
 
 export class TRpcStream {
@@ -44,7 +60,7 @@ export class TRpcStream {
   cid: number
   resType: any
   private newNo: number = 0
-  LastSendTime: number
+  LastSendTime?: number
   LastRecvTime: number = Date.now()
   private intervalTmrId: number = -1
 
@@ -57,7 +73,6 @@ export class TRpcStream {
 
     if (!callOpt) {
       callOpt = new TCallOption()
-      callOpt.timeout = 30
     }
     if (callOpt.timeout <= 0) {
       callOpt.timeout = 30
@@ -204,8 +219,8 @@ export class TRpcStream {
 }
 
 export class TrpcCon {
-  Sid: Uint8Array
-  wsUrl: string
+  Sid: Uint8Array = new Uint8Array()
+  wsUrl: string = ''
   wsCon: WebSocket | null = null
   LastRecvTime: number = -1
   LastSendTime: number = -1
