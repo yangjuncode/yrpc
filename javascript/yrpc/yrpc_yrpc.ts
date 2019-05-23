@@ -5,8 +5,8 @@ import ypubsub from './ypubsub'
 import {yrpc} from './yrpc'
 
 export interface IResult {
-    //reply is the result of grpc return
-    (reply: any, pkt: yrpc.Ypacket): void
+    //result is  the result of grpc return
+    (result: any, pkt: yrpc.Ypacket): void
 }
 
 //got remote server err
@@ -56,7 +56,7 @@ export class TRpcStream {
     api: string
     apiVerion: number
     cid: number
-    replyType: any
+    resultType: any
     private newNo: number = 0
     LastSendTime?: number
     LastRecvTime: number = Date.now()
@@ -65,7 +65,7 @@ export class TRpcStream {
     constructor(api: string, v: number, resultType: any, callOpt?: TCallOption) {
         this.api = api
         this.apiVerion = v
-        this.replyType = resultType
+        this.resultType = resultType
         this.cid = rpcCon.NewCid()
         ypubsub.subscribeInt(this.cid, this.onRpcPacket)
 
@@ -164,7 +164,7 @@ export class TRpcStream {
             case 2:
                 this.clearCall()
                 if (pkt.body.length > 0) {
-                    res = this.replyType.decode(pkt.body)
+                    res = this.resultType.decode(pkt.body)
 
                 }
                 if (this.callOpt.OnResult) {
@@ -184,7 +184,7 @@ export class TRpcStream {
                 }
                 break
             case 5:
-                res = this.replyType.decode(pkt.body)
+                res = this.resultType.decode(pkt.body)
                 if (this.callOpt.OnResult) {
                     this.callOpt.OnResult(res, pkt)
                 }
