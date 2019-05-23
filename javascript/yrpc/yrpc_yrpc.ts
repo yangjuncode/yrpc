@@ -1,7 +1,7 @@
 import pako from 'pako'
 
 import {addCallback2Map, delCallbackFromMap, isCallbackInMap} from './mapUtil'
-import {yrpc} from './rpc'
+import {yrpc} from './yrpc'
 import ypubsub from './ypubsub'
 
 export interface IResult {
