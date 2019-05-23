@@ -5,513 +5,504 @@ import ypubsub from './ypubsub'
 import {yrpc} from './yrpc'
 
 export interface IResult {
-  (res: any, rpcCmd: yrpc.Ypacket): void
+    //reply is the result of grpc return
+    (reply: any, pkt: yrpc.Ypacket): void
 }
 
-//remote
+//got remote server err
 export interface IServerErr {
-  (errRpc: yrpc.Ypacket): void
+    (errPkt: yrpc.Ypacket): void
 }
 
 export interface ILocalErr {
-  (err: any): void
+    (err: any): void
 }
 
-
+//got cancel response
 export interface ICancel {
-  (rpcCmd: yrpc.Ypacket): void
+    (pkt: yrpc.Ypacket): void
 }
 
 export interface ICallOption {
-  timeout?: number
-  OnResult?: IResult
-  OnServerErr?: IServerErr
-  OnLocalErr?: ILocalErr
-  OnTimeout?: Function
-  OnCancel?: ICancel
+    timeout?: number
+    OnResult?: IResult
+    OnServerErr?: IServerErr
+    OnLocalErr?: ILocalErr
+    OnTimeout?: Function
+    OnCancel?: ICancel
+    Meta?: Map<string, string>
 }
 
 export class TCallOption implements ICallOption {
-  //timeout in seconds
-  timeout: number
-  OnResult?: IResult
-  OnServerErr?: IServerErr
-  OnLocalErr?: ILocalErr
-  OnTimeout?: Function
-  OnCancel?: ICancel
+    //timeout in seconds
+    timeout: number
+    OnResult?: IResult
+    OnServerErr?: IServerErr
+    OnLocalErr?: ILocalErr
+    OnTimeout?: Function
+    OnCancel?: ICancel
+    Meta?: Map<string, string>
 
-  constructor(options?: ICallOption) {
-    options && Object.assign(this, options)
-    if (!this.timeout || this.timeout <= 0) {
-      this.timeout = 30
+    constructor(options?: ICallOption) {
+        options && Object.assign(this, options)
+        if (!this.timeout || this.timeout <= 0) {
+            this.timeout = 60
+        }
     }
-  }
 }
 
 export class TRpcStream {
-  callOpt: TCallOption
-  api: string
-  apiVerion: number
-  cid: number
-  resType: any
-  private newNo: number = 0
-  LastSendTime?: number
-  LastRecvTime: number = Date.now()
-  private intervalTmrId: number = -1
+    callOpt: TCallOption
+    api: string
+    apiVerion: number
+    cid: number
+    replyType: any
+    private newNo: number = 0
+    LastSendTime?: number
+    LastRecvTime: number = Date.now()
+    private intervalTmrId: number = -1
 
-  constructor(api: string, v: number, resType: any, callOpt?: TCallOption) {
-    this.api = api
-    this.apiVerion = v
-    this.resType = resType
-    this.cid = rpcCon.NewCid()
-    ypubsub.subscribeInt(this.cid, this.onRpc)
+    constructor(api: string, v: number, resultType: any, callOpt?: TCallOption) {
+        this.api = api
+        this.apiVerion = v
+        this.replyType = resultType
+        this.cid = rpcCon.NewCid()
+        ypubsub.subscribeInt(this.cid, this.onRpcPacket)
 
-    if (!callOpt) {
-      callOpt = new TCallOption()
-    }
-    if (callOpt.timeout <= 0) {
-      callOpt.timeout = 30
-    }
-    this.callOpt = callOpt
-
-    setInterval(() => {
-      this.intervalCheck()
-    }, 5000)
-  }
-
-  clearCall() {
-    ypubsub.unsubscribeInt(this.cid)
-    if (this.intervalTmrId >= 0) {
-      clearInterval(this.intervalTmrId)
-      this.intervalTmrId = -1
-    }
-  }
-
-
-  sendFirst(reqData: Uint8Array) {
-    let rpc = new yrpc.Ypacket()
-    if (this.apiVerion > 0) {
-      rpc.cmd = 1 | (this.apiVerion << 24)
-
-    } else {
-      rpc.cmd = 1
-    }
-    rpc.body = reqData
-    rpc.optstr = this.api
-    rpc.cid = this.cid
-    rpc.no = 0
-    this.newNo = 1
-
-    let sendOk = rpcCon.sendRpc(rpc)
-    if (sendOk) {
-      this.LastSendTime = Date.now()
-    }
-
-  }
-
-  //return rpc no,if <0: not send to socket
-  sendNext(reqData: Uint8Array): number {
-    let rpc = new yrpc.Ypacket()
-    if (this.apiVerion > 0) {
-      rpc.cmd = 7 | (this.apiVerion << 24)
-
-    } else {
-      rpc.cmd = 7
-    }
-    rpc.body = reqData
-    rpc.cid = this.cid
-    rpc.no = this.newNo
-    ++this.newNo
-
-    if (!rpcCon.sendRpc(rpc)) {
-      return -1
-    } else {
-      this.LastSendTime = Date.now()
-    }
-    return rpc.no
-  }
-
-  //client stream finish
-  sendFinish() {
-    let rpc = new yrpc.Ypacket()
-    rpc.cmd = 9
-    rpc.cid = this.cid
-    let sendOk = rpcCon.sendRpc(rpc)
-    if (sendOk) {
-      this.LastSendTime = Date.now()
-    }
-  }
-
-  //cancel the rpc call
-  cancel() {
-    let rpc = new yrpc.Ypacket()
-    rpc.cmd = 44
-    rpc.cid = this.cid
-    let sendOk = rpcCon.sendRpc(rpc)
-    if (sendOk) {
-      this.LastSendTime = Date.now()
-    }
-
-  }
-
-  //ping
-  ping() {
-    let rpc = new yrpc.Ypacket()
-    rpc.cmd = 3
-    rpc.cid = rpcCon.NewCid()
-
-    let sendOk = rpcCon.sendRpc(rpc)
-    if (sendOk) {
-      this.LastSendTime = Date.now()
-    }
-  }
-
-  onRpc(rpc: yrpc.Ypacket) {
-    this.LastRecvTime = rpcCon.LastRecvTime
-    let res: any = null
-    switch (rpc.cmd) {
-      case 2:
-        this.clearCall()
-        if (rpc.body.length > 0) {
-          res = this.resType.decode(rpc.body)
-
+        if (!callOpt) {
+            callOpt = new TCallOption()
         }
-        if (this.callOpt.OnResult) {
-          this.callOpt.OnResult(res, rpc)
+        if (callOpt.timeout <= 0) {
+            callOpt.timeout = 30
         }
-        break
-      case 4:
-        this.clearCall()
-        if (rpc.res === 44) {
-          if (this.callOpt.OnCancel) {
-            this.callOpt.OnCancel(rpc)
-            break
-          }
-        }
-        if (this.callOpt.OnServerErr) {
-          this.callOpt.OnServerErr(rpc)
-        }
-        break
-      case 5:
-        res = this.resType.decode(rpc.body)
-        if (this.callOpt.OnResult) {
-          this.callOpt.OnResult(res, rpc)
-        }
-        break
+        this.callOpt = callOpt
+
+        setInterval(() => {
+            this.intervalCheck()
+        }, 5000)
     }
-  }
 
-  intervalCheck() {
-    let nowTime = Date.now()
+    clearCall() {
+        ypubsub.unsubscribeInt(this.cid)
+        if (this.intervalTmrId >= 0) {
+            clearInterval(this.intervalTmrId)
+            this.intervalTmrId = -1
+        }
+    }
 
-  }
+
+    sendFirst(reqData: Uint8Array) {
+        let pkt = new yrpc.Ypacket()
+        if (this.apiVerion > 0) {
+            pkt.cmd = 1 | (this.apiVerion << 24)
+
+        } else {
+            pkt.cmd = 1
+        }
+        pkt.body = reqData
+        pkt.optstr = this.api
+        pkt.cid = this.cid
+        pkt.no = 0
+        this.newNo = 1
+
+        let sendOk = rpcCon.sendRpcPacket(pkt)
+        if (sendOk) {
+            this.LastSendTime = Date.now()
+        }
+
+    }
+
+    //return rpc no,if <0: not send to socket
+    sendNext(reqData: Uint8Array): number {
+        let rpc = new yrpc.Ypacket()
+        if (this.apiVerion > 0) {
+            rpc.cmd = 7 | (this.apiVerion << 24)
+
+        } else {
+            rpc.cmd = 7
+        }
+        rpc.body = reqData
+        rpc.cid = this.cid
+        rpc.no = this.newNo
+        ++this.newNo
+
+        if (!rpcCon.sendRpcPacket(rpc)) {
+            return -1
+        } else {
+            this.LastSendTime = Date.now()
+        }
+        return rpc.no
+    }
+
+    //client stream finish
+    sendFinish() {
+        let rpc = new yrpc.Ypacket()
+        rpc.cmd = 9
+        rpc.cid = this.cid
+        let sendOk = rpcCon.sendRpcPacket(rpc)
+        if (sendOk) {
+            this.LastSendTime = Date.now()
+        }
+    }
+
+    //cancel the rpc call
+    cancel() {
+        let rpc = new yrpc.Ypacket()
+        rpc.cmd = 44
+        rpc.cid = this.cid
+        let sendOk = rpcCon.sendRpcPacket(rpc)
+        if (sendOk) {
+            this.LastSendTime = Date.now()
+        }
+
+    }
+
+    onRpcPacket(pkt: yrpc.Ypacket) {
+        this.LastRecvTime = rpcCon.LastRecvTime
+        let res: any = null
+        switch (pkt.cmd) {
+            case 2:
+                this.clearCall()
+                if (pkt.body.length > 0) {
+                    res = this.replyType.decode(pkt.body)
+
+                }
+                if (this.callOpt.OnResult) {
+                    this.callOpt.OnResult(res, pkt)
+                }
+                break
+            case 4:
+                this.clearCall()
+                if (pkt.res === 44) {
+                    if (this.callOpt.OnCancel) {
+                        this.callOpt.OnCancel(pkt)
+                        break
+                    }
+                }
+                if (this.callOpt.OnServerErr) {
+                    this.callOpt.OnServerErr(pkt)
+                }
+                break
+            case 5:
+                res = this.replyType.decode(pkt.body)
+                if (this.callOpt.OnResult) {
+                    this.callOpt.OnResult(res, pkt)
+                }
+                break
+        }
+    }
+
+    intervalCheck() {
+        let nowTime = Date.now()
+
+    }
 
 }
 
 export class TrpcCon {
-  Sid: Uint8Array = new Uint8Array()
-  wsUrl: string = ''
-  wsCon: WebSocket | null = null
-  LastRecvTime: number = -1
-  LastSendTime: number = -1
-  private wsReconnectTmrId: number = -1
-  private cid: number = 0
+    Sid: Uint8Array = new Uint8Array()
+    wsUrl: string = ''
+    wsCon: WebSocket | null = null
+    LastRecvTime: number = -1
+    LastSendTime: number = -1
+    private wsReconnectTmrId: number = -1
+    private cid: number = 0
 
-  OnceSubscribeList: Map<string, Function[]> = new Map<string, Function[]>()
-  SubscribeList: Map<string, Function[]> = new Map<string, Function[]>()
-
-
-  initWsCon(url: string) {
-
-    if (this.wsCon) {
-      this.wsCon.close()
-    }
-
-    this.wsCon = new WebSocket(url)
-    this.wsUrl = url
-
-    this.wsCon.onmessage = this.onWsMsg
-    this.wsCon.onclose = this.onWsClose
-    this.wsCon.onerror = this.onWsErr
-    this.wsCon.onopen = this.onWsOpen
-
-  }
+    OnceSubscribeList: Map<string, Function[]> = new Map<string, Function[]>()
+    SubscribeList: Map<string, Function[]> = new Map<string, Function[]>()
 
 
-  isWsConnected(): boolean {
-    if (!this.wsCon) {
-      return false
-    }
-    if (this.wsCon.readyState !== WebSocket.OPEN) {
-      return false
-    }
-    return true
-  }
+    initWsCon(url: string) {
 
-  sendRpcData(rpcData: Uint8Array): boolean {
-    if (!this.wsCon) {
-      return false
-    }
-    if (this.wsCon.readyState !== WebSocket.OPEN) {
-      return false
-    }
+        if (this.wsCon) {
+            this.wsCon.close()
+        }
 
-    this.wsCon.send(rpcData)
-    this.LastSendTime = Date.now()
-    return true
-  }
+        this.wsCon = new WebSocket(url)
+        this.wsUrl = url
 
-  sendRpc(rpc: yrpc.Ypacket): boolean {
-    let w = yrpc.Ypacket.encode(rpc)
-    let rpcData = w.finish()
-    return this.sendRpcData(rpcData)
-  }
-
-  onWsMsg(ev: MessageEvent): void {
-    this.LastRecvTime = Date.now()
-    let rpcData = new Uint8Array(ev.data)
-    let rpc = yrpc.Ypacket.decode(rpcData)
-
-    if (rpc.body.length > 0) {
-      let zipType = rpc.cmd & 0x000f0000
-      switch (zipType) {
-        case 0x00010000://lz4
-          throw new Error('no lz4 support now')
-          break
-        case 0x00020000://zlib
-          rpc.body = pako.inflate(rpc.body)
-          break
-      }
+        this.wsCon.onmessage = this.onWsMsg
+        this.wsCon.onclose = this.onWsClose
+        this.wsCon.onerror = this.onWsErr
+        this.wsCon.onopen = this.onWsOpen
 
     }
-    if (rpc.optbin.length > 0) {
-      let zipType = rpc.cmd & 0x00f00000
-      switch (zipType) {
-        case 0x00100000://lz4
-          throw new Error('no lz4 support now')
-          break
-        case 0x00200000://zlib
-          rpc.optbin = pako.inflate(rpc.optbin)
-          break
-      }
+
+
+    isWsConnected(): boolean {
+        if (!this.wsCon) {
+            return false
+        }
+        if (this.wsCon.readyState !== WebSocket.OPEN) {
+            return false
+        }
+        return true
     }
 
-    rpc.cmd = rpc.cmd & 0xffff
-    switch (rpc.cmd) {
-      // publish response
-      case 11:
-        break
+    sendRpcData(rpcData: Uint8Array): boolean {
+        if (!this.wsCon) {
+            return false
+        }
+        if (this.wsCon.readyState !== WebSocket.OPEN) {
+            return false
+        }
 
-      // sub/unsub response
-      case 12:
-        break
-
-      // nats recv msg
-      case 13:
-        break
+        this.wsCon.send(rpcData)
+        this.LastSendTime = Date.now()
+        return true
     }
 
-  }
-
-  onWsErr(ev: Event): void {
-    console.log('ws err:', ev)
-  }
-
-  onWsClose(ev: CloseEvent): void {
-    this.wsCon = null
-
-    this.wsReconnectTmrId = window.setInterval(() => {
-      if (this.isWsConnected()) {
-        clearInterval(this.wsReconnectTmrId)
-        return
-      }
-      this.initWsCon(this.wsUrl)
-    }, 5000)
-  }
-
-  onWsOpen(ev: Event) {
-    console.log('ws open:', ev)
-  }
-
-
-  //return cid in rpccmd, <0: not send
-  NatsPublish(subject: string, data: Uint8Array, natsOpt?: yrpc.natsOption): number {
-    if (!this.isWsConnected()) {
-      return -1
+    sendRpcPacket(pkt: yrpc.Ypacket): boolean {
+        let w = yrpc.Ypacket.encode(pkt)
+        let rpcData = w.finish()
+        return this.sendRpcData(rpcData)
     }
 
-    let rpc = new yrpc.Ypacket()
-    rpc.cmd = 11
-    rpc.cid = this.NewCid()
-    rpc.optstr = subject
-    rpc.body = data
+    onWsMsg(ev: MessageEvent): void {
+        this.LastRecvTime = Date.now()
+        let rpcData = new Uint8Array(ev.data)
+        let rpc = yrpc.Ypacket.decode(rpcData)
 
-    if (natsOpt) {
-      let w = yrpc.natsOption.encode(natsOpt)
-      let obin = w.finish()
-      rpc.optbin = obin
-    }
-    this.sendRpc(rpc)
-    return rpc.cid
-  }
+        if (rpc.body.length > 0) {
+            let zipType = rpc.cmd & 0x000f0000
+            switch (zipType) {
+                case 0x00010000://lz4
+                    throw new Error('no lz4 support now')
+                    break
+                case 0x00020000://zlib
+                    rpc.body = pako.inflate(rpc.body)
+                    break
+            }
 
-  NatsSubsribe(subject: string, FnMsg: Function): boolean {
-    if (!this.isWsConnected()) {
-      return false
-    }
-    let hasExist = isCallbackInMap(subject, FnMsg, this.SubscribeList)
-    if (hasExist) {
-      return true
-    }
-    let rpc = new yrpc.Ypacket()
-    rpc.cmd = 12
-    rpc.res = 1
-    rpc.cid = this.NewCid()
-    rpc.optstr = subject
+        }
+        if (rpc.optbin.length > 0) {
+            let zipType = rpc.cmd & 0x00f00000
+            switch (zipType) {
+                case 0x00100000://lz4
+                    throw new Error('no lz4 support now')
+                    break
+                case 0x00200000://zlib
+                    rpc.optbin = pako.inflate(rpc.optbin)
+                    break
+            }
+        }
 
-    addCallback2Map(subject, FnMsg, this.SubscribeList)
+        rpc.cmd = rpc.cmd & 0xffff
+        switch (rpc.cmd) {
+            // publish response
+            case 11:
+                break
 
-    return this.sendRpc(rpc)
+            // sub/unsub response
+            case 12:
+                break
 
-  }
+            // nats recv msg
+            case 13:
+                break
+        }
 
-  NatsSubsribeOnce(subject: string, FnMsg: Function) {
-    if (!this.isWsConnected()) {
-      return false
-    }
-    let hasExist = isCallbackInMap(subject, FnMsg, this.OnceSubscribeList)
-    if (hasExist) {
-      return true
-    }
-    let rpc = new yrpc.Ypacket()
-    rpc.cmd = 12
-    rpc.res = 1
-    rpc.cid = this.NewCid()
-    rpc.optstr = subject
-
-    addCallback2Map(subject, FnMsg, this.OnceSubscribeList)
-
-    return this.sendRpc(rpc)
-  }
-
-  NatsUnsubsribe(subject: string, FnMsg?: Function) {
-    let rpc = new yrpc.Ypacket()
-    rpc.cmd = 12
-    rpc.res = 2
-    rpc.cid = this.NewCid()
-    rpc.optstr = subject
-    this.sendRpc(rpc)
-
-    if (!FnMsg) {
-      this.OnceSubscribeList.delete(subject)
-      this.SubscribeList.delete(subject)
-    } else {
-      delCallbackFromMap(subject, FnMsg, this.OnceSubscribeList)
-      delCallbackFromMap(subject, FnMsg, this.SubscribeList)
     }
 
-  }
+    onWsErr(ev: Event): void {
+        console.log('ws err:', ev)
+    }
 
-  NewCid(): number {
+    onWsClose(ev: CloseEvent): void {
+        this.wsCon = null
 
-    while (true) {
-      let newCid = this.genCid()
-      if (ypubsub.hasSubscribeInt(newCid)) {
-        continue
-      }
-      return newCid
+        this.wsReconnectTmrId = window.setInterval(() => {
+            if (this.isWsConnected()) {
+                clearInterval(this.wsReconnectTmrId)
+                return
+            }
+            this.initWsCon(this.wsUrl)
+        }, 5000)
+    }
+
+    onWsOpen(ev: Event) {
+        console.log('ws open:', ev)
     }
 
 
-  }
+    //return cid in rpccmd, <0: not send
+    NatsPublish(subject: string, data: Uint8Array, natsOpt?: yrpc.natsOption): number {
+        if (!this.isWsConnected()) {
+            return -1
+        }
 
-  private genCid(): number {
-    if (this.cid === 0xFFFFFFFF) {
-      this.cid = 0
-      return 0xFFFFFFFF
+        let rpc = new yrpc.Ypacket()
+        rpc.cmd = 11
+        rpc.cid = this.NewCid()
+        rpc.optstr = subject
+        rpc.body = data
+
+        if (natsOpt) {
+            let w = yrpc.natsOption.encode(natsOpt)
+            let obin = w.finish()
+            rpc.optbin = obin
+        }
+        this.sendRpcPacket(rpc)
+        return rpc.cid
     }
 
+    NatsSubsribe(subject: string, FnMsg: Function): boolean {
+        if (!this.isWsConnected()) {
+            return false
+        }
+        let hasExist = isCallbackInMap(subject, FnMsg, this.SubscribeList)
+        if (hasExist) {
+            return true
+        }
+        let rpc = new yrpc.Ypacket()
+        rpc.cmd = 12
+        rpc.res = 1
+        rpc.cid = this.NewCid()
+        rpc.optstr = subject
 
-    return this.cid++
-  }
+        addCallback2Map(subject, FnMsg, this.SubscribeList)
 
-  ping(): void {
-    let rpc = new yrpc.Ypacket()
-    rpc.cmd = 3
-    this.sendRpc(rpc)
+        return this.sendRpcPacket(rpc)
 
-  }
-
-  NocareCall(reqData: Uint8Array, api: string, v: number): void {
-    let rpc = new yrpc.Ypacket()
-    if (v > 0) {
-      rpc.cmd = 10 | (v << 24)
-
-    } else {
-      rpc.cmd = 10
-    }
-    rpc.body = reqData
-    rpc.optstr = api
-
-    this.sendRpc(rpc)
-  }
-
-  UnaryCall(reqData: Uint8Array, api: string, v: number, resType: any, callOpt?: TCallOption) {
-    let rpc = new yrpc.Ypacket()
-
-    if (v > 0) {
-      rpc.cmd = 1 | (v << 24)
-
-    } else {
-      rpc.cmd = 1
-    }
-    rpc.cid = rpcCon.NewCid()
-    rpc.body = reqData
-    rpc.optstr = api
-
-    let sendOk = this.sendRpc(rpc)
-
-    if (!callOpt) {
-      return
     }
 
-    if (!sendOk) {
-      if (callOpt.OnLocalErr) {
-        callOpt.OnLocalErr('can not send to socket')
-      }
-      return
+    NatsSubsribeOnce(subject: string, FnMsg: Function) {
+        if (!this.isWsConnected()) {
+            return false
+        }
+        let hasExist = isCallbackInMap(subject, FnMsg, this.OnceSubscribeList)
+        if (hasExist) {
+            return true
+        }
+        let rpc = new yrpc.Ypacket()
+        rpc.cmd = 12
+        rpc.res = 1
+        rpc.cid = this.NewCid()
+        rpc.optstr = subject
+
+        addCallback2Map(subject, FnMsg, this.OnceSubscribeList)
+
+        return this.sendRpcPacket(rpc)
     }
-    if (callOpt.timeout <= 0) {
-      callOpt.timeout = 30
+
+    NatsUnsubsribe(subject: string, FnMsg?: Function) {
+        let rpc = new yrpc.Ypacket()
+        rpc.cmd = 12
+        rpc.res = 2
+        rpc.cid = this.NewCid()
+        rpc.optstr = subject
+        this.sendRpcPacket(rpc)
+
+        if (!FnMsg) {
+            this.OnceSubscribeList.delete(subject)
+            this.SubscribeList.delete(subject)
+        } else {
+            delCallbackFromMap(subject, FnMsg, this.OnceSubscribeList)
+            delCallbackFromMap(subject, FnMsg, this.SubscribeList)
+        }
+
     }
-    let timeoutId: number = window.setTimeout(() => {
-      ypubsub.unsubscribeInt(rpc.cid)
-      if (callOpt.OnTimeout) {
-        callOpt.OnTimeout()
-      }
-    }, callOpt.timeout * 1000)
+
+    NewCid(): number {
+
+        while (true) {
+            let newCid = this.genCid()
+            if (ypubsub.hasSubscribeInt(newCid)) {
+                continue
+            }
+            return newCid
+        }
 
 
-    ypubsub.subscribeOnceInt(rpc.cid, function (resRpc: yrpc.Ypacket) {
-      switch (resRpc.cmd) {
-        case 2:
-          let res = resType.decode(resRpc.body)
-          if (callOpt.OnResult) {
-            callOpt.OnResult(res, resRpc)
-          }
-          break
-        case 4:
-          if (callOpt.OnServerErr) {
-            callOpt.OnServerErr(resRpc)
-          }
-          break
-        default:
-          console.log('unary call bad:res:', resRpc)
-      }
-      clearTimeout(timeoutId)
-    })
+    }
 
-  }
+    private genCid(): number {
+        if (this.cid === 0xFFFFFFFF) {
+            this.cid = 0
+            return 0xFFFFFFFF
+        }
+
+
+        return this.cid++
+    }
+
+    ping(): void {
+        let rpc = new yrpc.Ypacket()
+        rpc.cmd = 3
+        this.sendRpcPacket(rpc)
+
+    }
+
+    NocareCall(reqData: Uint8Array, api: string, v: number): void {
+        let rpc = new yrpc.Ypacket()
+        if (v > 0) {
+            rpc.cmd = 10 | (v << 24)
+
+        } else {
+            rpc.cmd = 10
+        }
+        rpc.body = reqData
+        rpc.optstr = api
+
+        this.sendRpcPacket(rpc)
+    }
+
+    UnaryCall(reqData: Uint8Array, api: string, v: number, resType: any, callOpt?: TCallOption) {
+        let rpc = new yrpc.Ypacket()
+
+        if (v > 0) {
+            rpc.cmd = 1 | (v << 24)
+
+        } else {
+            rpc.cmd = 1
+        }
+        rpc.cid = rpcCon.NewCid()
+        rpc.body = reqData
+        rpc.optstr = api
+
+        let sendOk = this.sendRpcPacket(rpc)
+
+        if (!callOpt) {
+            return
+        }
+
+        if (!sendOk) {
+            if (callOpt.OnLocalErr) {
+                callOpt.OnLocalErr('can not send to socket')
+            }
+            return
+        }
+        if (callOpt.timeout <= 0) {
+            callOpt.timeout = 30
+        }
+        let timeoutId: number = window.setTimeout(() => {
+            ypubsub.unsubscribeInt(rpc.cid)
+            if (callOpt.OnTimeout) {
+                callOpt.OnTimeout()
+            }
+        }, callOpt.timeout * 1000)
+
+
+        ypubsub.subscribeOnceInt(rpc.cid, function (resRpc: yrpc.Ypacket) {
+            switch (resRpc.cmd) {
+                case 2:
+                    let res = resType.decode(resRpc.body)
+                    if (callOpt.OnResult) {
+                        callOpt.OnResult(res, resRpc)
+                    }
+                    break
+                case 4:
+                    if (callOpt.OnServerErr) {
+                        callOpt.OnServerErr(resRpc)
+                    }
+                    break
+                default:
+                    console.log('unary call bad:res:', resRpc)
+            }
+            clearTimeout(timeoutId)
+        })
+
+    }
 
 }
 
