@@ -54,6 +54,14 @@ export class TCallOption implements ICallOption {
 export class TYrpcMeta {
     Meta?: Map<string, string>
 
+    metaCount(): number {
+        if (!this.Meta) {
+            return 0
+        }
+
+        return this.Meta.size
+    }
+
     initMetaMap() {
         if (!this.Meta) {
             this.Meta = new Map<string, string>()
@@ -114,6 +122,20 @@ export class TYrpcMeta {
             this.Meta.set(pkt.meta[i - 1], pkt.meta[i])
         }
     }
+
+    copyOtherMeta(otherMeta: TYrpcMeta) {
+        if (!otherMeta.Meta) {
+            return
+        }
+        if (otherMeta.metaCount() === 0) {
+            return;
+        }
+        this.initMetaMap()
+        otherMeta.Meta.forEach((value, key) => {
+            // @ts-ignore
+            this.Meta.set(key, value)
+        })
+    }
 }
 
 export class TRpcStream {
@@ -158,7 +180,7 @@ export class TRpcStream {
 
     sendFirst(reqData: Uint8Array) {
         let pkt = new yrpc.Ypacket()
-            pkt.cmd = 1
+        pkt.cmd = 1
         pkt.body = reqData
         pkt.optstr = this.api
         pkt.cid = this.cid
@@ -262,6 +284,7 @@ export class TrpcCon {
     LastSendTime: number = -1
     private wsReconnectTmrId: number = -1
     private cid: number = 0
+    Meta: TYrpcMeta = new TYrpcMeta()
 
     OnceSubscribeList: Map<string, Function[]> = new Map<string, Function[]>()
     SubscribeList: Map<string, Function[]> = new Map<string, Function[]>()
