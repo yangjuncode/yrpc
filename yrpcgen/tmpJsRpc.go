@@ -18,13 +18,13 @@ public static readonly ver={{$srvVersion}}
 {{ end }}
 
 {{ range $no,$rpc := .unaryCalls }}
- public static {{$rpc.MethodName}}(req:{{$rpc.InputType}},callOpt?:TCallOption):Error | null{
+ public static {{$rpc.MethodName}}(req:{{$rpc.InputType}},callOpt?:TCallOption):void{
 	let w:Writer={{$rpc.InputType}}.encode(req)
 	let reqData=w.finish()
 	
 	let api='{{$rpc.Api}}'
 
-	return rpcCon.UnaryCall(reqData,api,{{$rpc.Version}},{{$rpc.OutputType}},callOpt)
+	rpcCon.UnaryCall(reqData,api,{{$rpc.Version}},{{$rpc.OutputType}},callOpt)
 	
 }
 {{ end }}
