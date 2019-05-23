@@ -158,12 +158,7 @@ export class TRpcStream {
 
     sendFirst(reqData: Uint8Array) {
         let pkt = new yrpc.Ypacket()
-        if (this.apiVerion > 0) {
-            pkt.cmd = 1 | (this.apiVerion << 24)
-
-        } else {
             pkt.cmd = 1
-        }
         pkt.body = reqData
         pkt.optstr = this.api
         pkt.cid = this.cid
@@ -180,12 +175,7 @@ export class TRpcStream {
     //return rpc no,if <0: not send to socket
     sendNext(reqData: Uint8Array): number {
         let rpc = new yrpc.Ypacket()
-        if (this.apiVerion > 0) {
-            rpc.cmd = 7 | (this.apiVerion << 24)
-
-        } else {
-            rpc.cmd = 7
-        }
+        rpc.cmd = 7
         rpc.body = reqData
         rpc.cid = this.cid
         rpc.no = this.newNo
