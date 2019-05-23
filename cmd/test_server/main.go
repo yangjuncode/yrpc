@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"net/http"
 	"os"
 
@@ -190,7 +191,12 @@ func responseRpcUnary(conn *websocket.Conn, reqpkt *yrpc.Ypacket, result []byte)
 	reqpkt.Body = result
 	reqpkt.Res = 0
 
-	writeWebsocketPacket(conn, reqpkt)
+	fmt.Println("response unary call:", reqpkt)
+
+	err := writeWebsocketPacket(conn, reqpkt)
+	if err != nil {
+		log.Info().Err(err).Msg("send ws response err")
+	}
 }
 
 func getGrpcConn(grpcAddr string) (conn *grpc.ClientConn, err error) {
