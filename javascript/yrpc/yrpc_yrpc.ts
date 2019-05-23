@@ -144,15 +144,17 @@ export class TRpcStream {
     apiVerion: number
     cid: number
     resultType: any
+    rpcType: number
     private newNo: number = 0
     LastSendTime?: number
     LastRecvTime: number = Date.now()
     private intervalTmrId: number = -1
 
-    constructor(api: string, v: number, resultType: any, callOpt?: TCallOption) {
+    constructor(api: string, v: number, resultType: any, rpcType: number, callOpt?: TCallOption) {
         this.api = api
         this.apiVerion = v
         this.resultType = resultType
+        this.rpcType = rpcType
         this.cid = rpcCon.NewCid()
         ypubsub.subscribeInt(this.cid, this.onRpcPacket)
 
@@ -180,7 +182,7 @@ export class TRpcStream {
 
     sendFirst(reqData: Uint8Array) {
         let pkt = new yrpc.Ypacket()
-        pkt.cmd = 1
+        pkt.cmd = this.rpcType
         pkt.body = reqData
         pkt.optstr = this.api
         pkt.cid = this.cid
@@ -197,7 +199,7 @@ export class TRpcStream {
     //return rpc no,if <0: not send to socket
     sendNext(reqData: Uint8Array): number {
         let rpc = new yrpc.Ypacket()
-        rpc.cmd = 7
+        rpc.cmd = 5
         rpc.body = reqData
         rpc.cid = this.cid
         rpc.no = this.newNo
@@ -214,7 +216,7 @@ export class TRpcStream {
     //client stream finish
     sendFinish() {
         let rpc = new yrpc.Ypacket()
-        rpc.cmd = 9
+        rpc.cmd = 6
         rpc.cid = this.cid
         let sendOk = rpcCon.sendRpcPacket(rpc)
         if (sendOk) {
@@ -225,7 +227,7 @@ export class TRpcStream {
     //cancel the rpc call
     cancel() {
         let rpc = new yrpc.Ypacket()
-        rpc.cmd = 44
+        rpc.cmd = 4
         rpc.cid = this.cid
         let sendOk = rpcCon.sendRpcPacket(rpc)
         if (sendOk) {
@@ -238,7 +240,8 @@ export class TRpcStream {
         this.LastRecvTime = rpcCon.LastRecvTime
         let res: any = null
         switch (pkt.cmd) {
-            case 2:
+            case 3:
+                //client stream first response
                 this.clearCall()
                 if (pkt.body.length > 0) {
                     res = this.resultType.decode(pkt.body)
@@ -249,22 +252,37 @@ export class TRpcStream {
                 }
                 break
             case 4:
+                //rpc call err
                 this.clearCall()
-                if (pkt.res === 44) {
-                    if (this.callOpt.OnCancel) {
-                        this.callOpt.OnCancel(pkt)
-                        break
-                    }
-                }
+
                 if (this.callOpt.OnServerErr) {
                     this.callOpt.OnServerErr(pkt)
                 }
                 break
             case 5:
+                //client stream sendNext response
                 res = this.resultType.decode(pkt.body)
                 if (this.callOpt.OnResult) {
                     this.callOpt.OnResult(res, pkt)
                 }
+                break
+            case 6:
+                //client stream send finish response
+                break
+            case 7:
+                //server stream sendFirst response
+                break
+            case 8:
+                //bidi stream call sendFirst response
+                break
+            case 12:
+                //server stream response
+                break
+            case 13:
+                //server stream end
+                break
+            case 44:
+                //rpc cancel response
                 break
         }
     }
