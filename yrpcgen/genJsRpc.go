@@ -38,9 +38,9 @@ func (this *TjsrpcImportManager) ImportMsgTypeByKey(msgKey string) {
 		log.Fatal("cann't get msgItem for:", msgKey)
 	}
 
-	if msgItem.PkgName == this.PkgName && msgItem.Filename == this.FileName {
-		log.Fatal("rpc can not write with message in the same file,pleae seperate it")
-	}
+	//if msgItem.PkgName == this.PkgName && msgItem.Filename == this.FileName {
+	//	log.Fatal("rpc can not write with message in the same file,pleae seperate it")
+	//}
 
 	this.MsgImport[msgKey] = msgItem
 }
@@ -79,7 +79,11 @@ func jsGenRpc(request *plugin.CodeGeneratorRequest) (genFiles []*plugin.CodeGene
 		importManager.AddRawImportType("{rpcCon}", "../yrpc/yrpc_yrpc")
 		importManager.AddRawImportType("{TCallOption}", "../yrpc/yrpc_yrpc")
 
-		jsYrpcFilename := pkgName + "/" + fileName + ".ts"
+		fileRpcPostfix := ""
+		if len(fd.MessageType) > 0 {
+			fileRpcPostfix = "Yrpc"
+		}
+		jsYrpcFilename := pkgName + "/" + fileName + fileRpcPostfix + ".ts"
 		jsYrpcFileContent := ""
 
 		for _, service := range fd.Service {
