@@ -17,9 +17,6 @@ export interface ILocalErr {
   (err: any): void
 }
 
-export interface IPong {
-  (rpcCmd: yrpc.Ypacket): void
-}
 
 export interface ICancel {
   (rpcCmd: yrpc.Ypacket): void
@@ -30,7 +27,6 @@ export interface ICallOption {
   OnResult?: IResult
   OnServerErr?: IServerErr
   OnLocalErr?: ILocalErr
-  OnPong?: IPong
   OnTimeout?: Function
   OnCancel?: ICancel
 }
@@ -41,7 +37,6 @@ export class TCallOption implements ICallOption {
   OnResult?: IResult
   OnServerErr?: IServerErr
   OnLocalErr?: ILocalErr
-  OnPong?: IPong
   OnTimeout?: Function
   OnCancel?: ICancel
 
@@ -183,11 +178,6 @@ export class TRpcStream {
         }
         if (this.callOpt.OnResult) {
           this.callOpt.OnResult(res, rpc)
-        }
-        break
-      case 3:
-        if (this.callOpt.OnPong) {
-          this.callOpt.OnPong(rpc)
         }
         break
       case 4:
