@@ -13,6 +13,7 @@
   },
   "devDependencies": {
     "@types/long": "^4.0.0",
+    "@types/pako": "^1.0.1",
     "typescript": "^3.3.3"
   }
 }
