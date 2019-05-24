@@ -23,6 +23,11 @@ export interface ICancel {
     (pkt: yrpc.Ypacket): void
 }
 
+//got client send pkt to server confirm
+export interface IPacketSendOK {
+    (cid: number, no: number, rpcStream: TRpcStream): void
+}
+
 export interface ICallOption {
     timeout?: number
     OnResult?: IResult
@@ -146,9 +151,13 @@ export class TRpcStream {
     resultType: any
     rpcType: number
     private newNo: number = 0
-    LastSendTime?: number
+    LastSendTime: number = Date.now()
     LastRecvTime: number = Date.now()
     private intervalTmrId: number = -1
+
+    SendFirstOK: boolean = false
+
+    private sendOkCallbacks: Map<number, IPacketSendOK>
 
     constructor(api: string, v: number, resultType: any, rpcType: number, callOpt?: TCallOption) {
         this.api = api
@@ -166,7 +175,7 @@ export class TRpcStream {
         }
         this.callOpt = callOpt
 
-        setInterval(() => {
+        this.intervalTmrId = window.setInterval(() => {
             this.intervalCheck()
         }, 5000)
     }
@@ -180,7 +189,8 @@ export class TRpcStream {
     }
 
 
-    sendFirst(reqData: Uint8Array) {
+    //return the no of pkt,if not send to socket, return <0
+    sendFirst(reqData: Uint8Array): number {
         let pkt = new yrpc.Ypacket()
         pkt.cmd = this.rpcType
         pkt.body = reqData
@@ -189,51 +199,62 @@ export class TRpcStream {
         pkt.no = 0
         this.newNo = 1
 
+        TrpcCon.AssignPacketMeta(pkt, this.apiVerion, this.callOpt)
+
         let sendOk = rpcCon.sendRpcPacket(pkt)
         if (sendOk) {
             this.LastSendTime = Date.now()
+            return 0
+        } else {
+            return -1
         }
 
     }
 
     //return rpc no,if <0: not send to socket
-    sendNext(reqData: Uint8Array): number {
-        let rpc = new yrpc.Ypacket()
-        rpc.cmd = 5
-        rpc.body = reqData
-        rpc.cid = this.cid
-        rpc.no = this.newNo
-        ++this.newNo
+    sendNext(reqData: Uint8Array, sendCallback?: IPacketSendOK): number {
+        let pkt = new yrpc.Ypacket()
+        pkt.cmd = 5
+        pkt.body = reqData
+        pkt.cid = this.cid
+        pkt.no = this.newNo
 
-        if (!rpcCon.sendRpcPacket(rpc)) {
+        if (!rpcCon.sendRpcPacket(pkt)) {
             return -1
         } else {
+            ++this.newNo
             this.LastSendTime = Date.now()
+            if (sendCallback) {
+                this.sendOkCallbacks.set(pkt.no, sendCallback)
+            }
         }
-        return rpc.no
+        return pkt.no
     }
 
-    //client stream finish
-    sendFinish() {
-        let rpc = new yrpc.Ypacket()
-        rpc.cmd = 6
-        rpc.cid = this.cid
-        let sendOk = rpcCon.sendRpcPacket(rpc)
+    //send client stream finish
+    //return if send the pkt to socket
+    sendFinish(): boolean {
+        let pkt = new yrpc.Ypacket()
+        pkt.cmd = 6
+        pkt.cid = this.cid
+        let sendOk = rpcCon.sendRpcPacket(pkt)
         if (sendOk) {
             this.LastSendTime = Date.now()
         }
+        return sendOk
     }
 
     //cancel the rpc call
-    cancel() {
-        let rpc = new yrpc.Ypacket()
-        rpc.cmd = 4
-        rpc.cid = this.cid
-        let sendOk = rpcCon.sendRpcPacket(rpc)
+    //return if send the pkt to socket
+    cancel(): boolean {
+        let pkt = new yrpc.Ypacket()
+        pkt.cmd = 4
+        pkt.cid = this.cid
+        let sendOk = rpcCon.sendRpcPacket(pkt)
         if (sendOk) {
             this.LastSendTime = Date.now()
         }
-
+        return sendOk
     }
 
     onRpcPacket(pkt: yrpc.Ypacket) {
@@ -242,14 +263,7 @@ export class TRpcStream {
         switch (pkt.cmd) {
             case 3:
                 //client stream first response
-                this.clearCall()
-                if (pkt.body.length > 0) {
-                    res = this.resultType.decode(pkt.body)
-
-                }
-                if (this.callOpt.OnResult) {
-                    this.callOpt.OnResult(res, pkt)
-                }
+                this.SendFirstOK = true
                 break
             case 4:
                 //rpc call err
@@ -261,35 +275,60 @@ export class TRpcStream {
                 break
             case 5:
                 //client stream sendNext response
-                res = this.resultType.decode(pkt.body)
-                if (this.callOpt.OnResult) {
-                    this.callOpt.OnResult(res, pkt)
+                let sendOKCallBack = this.sendOkCallbacks.get(pkt.no)
+                if (sendOKCallBack) {
+                    sendOKCallBack(pkt.cid, pkt.no, this)
+                    this.sendOkCallbacks.delete(pkt.no)
                 }
                 break
             case 6:
                 //client stream send finish response
+                this.clearCall()
+
+                if (this.callOpt.OnResult) {
+                    res = this.resultType.decode(pkt.body)
+                    this.callOpt.OnResult(res, pkt)
+                }
                 break
             case 7:
                 //server stream sendFirst response
+                this.SendFirstOK = true
                 break
             case 8:
                 //bidi stream call sendFirst response
+                this.SendFirstOK = true
                 break
             case 12:
-                //server stream response
+                //server stream send result
+                if (this.callOpt.OnResult) {
+                    res = this.resultType.decode(pkt.body)
+                    this.callOpt.OnResult(res, pkt)
+                }
+                //todo response received
                 break
             case 13:
                 //server stream end
                 break
             case 44:
                 //rpc cancel response
+                this.clearCall()
+                if (this.callOpt.OnCancel) {
+                    this.callOpt.OnCancel(pkt)
+                }
                 break
         }
     }
 
     intervalCheck() {
         let nowTime = Date.now()
+        let leaseTime = nowTime - this.LastRecvTime
 
+        if (leaseTime / 1000 > this.callOpt.timeout) {
+            this.clearCall()
+            if (this.callOpt.OnTimeout) {
+                this.callOpt.OnTimeout()
+            }
+        }
     }
 
 }
@@ -529,7 +568,7 @@ export class TrpcCon {
 
     }
 
-    AssignPacketMeta(pkt: yrpc.Ypacket, v: number, callOpt?: TCallOption) {
+    static AssignPacketMeta(pkt: yrpc.Ypacket, v: number, callOpt?: TCallOption) {
         let meta = callOpt ? callOpt.Meta : undefined
 
         if (v > 0) {
@@ -548,7 +587,7 @@ export class TrpcCon {
         pkt.body = reqData
         pkt.optstr = api
 
-        this.AssignPacketMeta(pkt, v, callOpt)
+        TrpcCon.AssignPacketMeta(pkt, v, callOpt)
 
         this.sendRpcPacket(pkt)
     }
@@ -561,7 +600,7 @@ export class TrpcCon {
         pkt.body = reqData
         pkt.optstr = api
 
-        this.AssignPacketMeta(pkt, v, callOpt)
+        TrpcCon.AssignPacketMeta(pkt, v, callOpt)
 
         let sendOk = this.sendRpcPacket(pkt)
 

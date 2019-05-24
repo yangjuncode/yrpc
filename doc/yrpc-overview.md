@@ -144,6 +144,7 @@ message Ypacket {
 ### 客户端流
 
 - 按照一次调用先发送调用请求,Ypacket.cmd=3, Ypacket.no=0
+- server收到3后,如果建立grpc成功,则回应cmd=3,Ypacket.body无内容,如果grpc不成功,回应cmd=4
 - 从第二个数据包开始,Ypacket.cmd=5,Ypacket.ostr不需要填写method签名
 - Ypacket.no以1开始标识cmd=5的包,cmd=5的第一个包为整个客户端流的第二个包
 - server收到后回应收到调用数据
@@ -171,7 +172,7 @@ message Ypacket {
   - Ypacket.cid跟第一次一样
   - Ypacket.no=server端的Ypacket.no
 - server端结束时发送命令Ypacket.cmd=13
-  - Ypacket.body可能为空
+  - Ypacket.body为空
 
 ### 双向流
 
@@ -195,7 +196,7 @@ message Ypacket {
 - client端发送完数据后发送结束命令Ypacket.cmd=6
 - server端发送最终回应(可以在client发送结束命令cmd=6前发送)
   - Ypacket.cmd=13
-  - Ypacket.body=可能为空
+  - Ypacket.body=为空
 
 
 ### 取消rpc请求
