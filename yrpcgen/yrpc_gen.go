@@ -26,6 +26,15 @@ type TrpcItem struct {
 	RpcMethodDescriptor *descriptor.MethodDescriptorProto
 }
 
+func (this *TrpcItem) InputTypeInterface() string {
+	dotPos := strings.LastIndex(this.InputType, ".")
+	if dotPos < 0 {
+		return this.InputType
+	}
+
+	return this.InputType[0:dotPos+1] + "I" + this.InputType[dotPos+1:]
+}
+
 func (this *TrpcItem) Api() string {
 	api := "/" + this.PkgName + "." + this.ServiceName + "/" + this.MethodName
 	if this.Version > 0 {
