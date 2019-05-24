@@ -592,9 +592,12 @@ export class TrpcCon {
         return this.cid++
     }
 
-    ping(): void {
+    ping(requestServerTime: boolean): void {
         let pkt = new yrpc.Ypacket()
         pkt.cmd = 14
+        if (requestServerTime) {
+            pkt.optstr = "1"
+        }
         this.sendRpcPacket(pkt)
 
     }
