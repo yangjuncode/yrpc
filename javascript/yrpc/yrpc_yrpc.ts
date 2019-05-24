@@ -384,7 +384,7 @@ export class TrpcCon {
     private cid: number = 0
     Meta: TYrpcMeta = new TYrpcMeta()
 
-    OnPong?: IOnPong
+    private _onpong?: IOnPong
 
     OnceSubscribeList: Map<string, Function[]> = new Map<string, Function[]>()
     SubscribeList: Map<string, Function[]> = new Map<string, Function[]>()
@@ -515,8 +515,9 @@ export class TrpcCon {
                     } catch (e) {
                     }
                 }
-                if (this.OnPong) {
-                    this.OnPong(pkt, unixTime)
+                if (this._onpong) {
+                    this._onpong(pkt, unixTime)
+                    this._onpong = undefined
                 }
                 break
 
@@ -647,11 +648,14 @@ export class TrpcCon {
         return this.cid++
     }
 
-    ping(requestServerTime: boolean): void {
+    ping(requestServerTime: boolean, onpong?: IOnPong): void {
         let pkt = new yrpc.Ypacket()
         pkt.cmd = 14
         if (requestServerTime) {
             pkt.optstr = "1"
+        }
+        if (onpong) {
+            this._onpong = onpong
         }
         this.sendRpcPacket(pkt)
 
