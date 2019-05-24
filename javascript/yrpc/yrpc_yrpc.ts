@@ -224,7 +224,7 @@ export class TRpcStream {
     //return rpc no,if <0: not send to socket
     sendNext(reqData: Uint8Array, sendCallback?: IPacketSendOK): number {
         if (!this.firstHasSent2Socket) {
-            return -1
+            return -9
         }
         let pkt = new yrpc.Ypacket()
         pkt.cmd = 5
@@ -245,35 +245,41 @@ export class TRpcStream {
     }
 
     //send client stream finish
-    //return if send the pkt to socket
-    sendFinish(): boolean {
+    //return <0 if not send the pkt to socket
+    sendFinish(): number {
         if (!this.firstHasSent2Socket) {
-            return false
+            return -9
         }
         let pkt = new yrpc.Ypacket()
         pkt.cmd = 6
         pkt.cid = this.cid
+        pkt.no = this.newNo
         let sendOk = rpcCon.sendRpcPacket(pkt)
         if (sendOk) {
             this.LastSendTime = Date.now()
+            return pkt.no
+        } else {
+            return -1
         }
-        return sendOk
     }
 
     //cancel the rpc call
-    //return if send the pkt to socket
-    cancel(): boolean {
+    //return <0 if not send the pkt to socket
+    cancel(): number {
         if (!this.firstHasSent2Socket) {
-            return false
+            return -9
         }
         let pkt = new yrpc.Ypacket()
         pkt.cmd = 4
         pkt.cid = this.cid
+        pkt.no = this.newNo
         let sendOk = rpcCon.sendRpcPacket(pkt)
         if (sendOk) {
             this.LastSendTime = Date.now()
+            return pkt.no
+        } else {
+            return -1
         }
-        return sendOk
     }
 
     onRpcPacket(pkt: yrpc.Ypacket) {
