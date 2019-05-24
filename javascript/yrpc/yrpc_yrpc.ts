@@ -397,12 +397,13 @@ export class TrpcCon {
         }
 
         this.wsCon = new WebSocket(url)
+        this.wsCon.binaryType = "arraybuffer"
         this.wsUrl = url
 
-        this.wsCon.onmessage = this.onWsMsg
-        this.wsCon.onclose = this.onWsClose
-        this.wsCon.onerror = this.onWsErr
-        this.wsCon.onopen = this.onWsOpen
+        this.wsCon.onmessage = this._onWsMsg
+        this.wsCon.onclose = this._onWsClose
+        this.wsCon.onerror = this._onWsErr
+        this.wsCon.onopen = this._onWsOpen
 
     }
 
@@ -436,7 +437,7 @@ export class TrpcCon {
         return this.sendRpcData(rpcData)
     }
 
-    onWsMsg(ev: MessageEvent): void {
+    private _onWsMsg(ev: MessageEvent): void {
         this.LastRecvTime = Date.now()
         let rpcData = new Uint8Array(ev.data)
 
@@ -525,11 +526,11 @@ export class TrpcCon {
 
     }
 
-    onWsErr(ev: Event): void {
+    private _onWsErr(ev: Event): void {
         console.log('ws err:', ev)
     }
 
-    onWsClose(ev: CloseEvent): void {
+    private _onWsClose(ev: CloseEvent): void {
         this.wsCon = null
 
         this.wsReconnectTmrId = window.setInterval(() => {
@@ -542,7 +543,7 @@ export class TrpcCon {
         }, 5000)
     }
 
-    onWsOpen(ev: Event) {
+    private _onWsOpen(ev: Event) {
         console.log('ws open:', ev)
     }
 
