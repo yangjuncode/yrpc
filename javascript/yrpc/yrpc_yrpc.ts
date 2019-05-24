@@ -14,6 +14,11 @@ export interface IServerErr {
     (errPkt: yrpc.Ypacket): void
 }
 
+//got rpc finished packet
+export interface IRpcFinished {
+    (finishedPkt: yrpc.Ypacket): void
+}
+
 export interface ILocalErr {
     (err: any): void
 }
@@ -31,6 +36,7 @@ export interface IPacketSendOK {
 export interface ICallOption {
     timeout?: number
     OnResult?: IResult
+    OnFinished?: IRpcFinished
     OnServerErr?: IServerErr
     OnLocalErr?: ILocalErr
     OnTimeout?: Function
@@ -42,6 +48,7 @@ export class TCallOption implements ICallOption {
     //timeout in seconds
     timeout: number
     OnResult?: IResult
+    OnFinished?: IRpcFinished
     OnServerErr?: IServerErr
     OnLocalErr?: ILocalErr
     OnTimeout?: Function
@@ -149,6 +156,7 @@ export class TRpcStream {
     apiVerion: number
     cid: number
     resultType: any
+    resultCount: number = 0
     rpcType: number
     private newNo: number = 0
     LastSendTime: number = Date.now()
@@ -156,6 +164,7 @@ export class TRpcStream {
     private intervalTmrId: number = -1
 
     SendFirstOK: boolean = false
+    firstHasSent2Socket: boolean = false
 
     private sendOkCallbacks: Map<number, IPacketSendOK>
 
@@ -203,6 +212,7 @@ export class TRpcStream {
 
         let sendOk = rpcCon.sendRpcPacket(pkt)
         if (sendOk) {
+            this.firstHasSent2Socket = true
             this.LastSendTime = Date.now()
             return 0
         } else {
@@ -213,6 +223,9 @@ export class TRpcStream {
 
     //return rpc no,if <0: not send to socket
     sendNext(reqData: Uint8Array, sendCallback?: IPacketSendOK): number {
+        if (!this.firstHasSent2Socket) {
+            return -1
+        }
         let pkt = new yrpc.Ypacket()
         pkt.cmd = 5
         pkt.body = reqData
@@ -234,6 +247,9 @@ export class TRpcStream {
     //send client stream finish
     //return if send the pkt to socket
     sendFinish(): boolean {
+        if (!this.firstHasSent2Socket) {
+            return false
+        }
         let pkt = new yrpc.Ypacket()
         pkt.cmd = 6
         pkt.cid = this.cid
@@ -247,6 +263,9 @@ export class TRpcStream {
     //cancel the rpc call
     //return if send the pkt to socket
     cancel(): boolean {
+        if (!this.firstHasSent2Socket) {
+            return false
+        }
         let pkt = new yrpc.Ypacket()
         pkt.cmd = 4
         pkt.cid = this.cid
@@ -282,13 +301,13 @@ export class TRpcStream {
                 }
                 break
             case 6:
-                //client stream send finish response
+                //client stream send finish response from server
                 this.clearCall()
 
-                if (this.callOpt.OnResult) {
-                    res = this.resultType.decode(pkt.body)
-                    this.callOpt.OnResult(res, pkt)
+                if (this.callOpt.OnFinished) {
+                    this.callOpt.OnFinished(pkt)
                 }
+
                 break
             case 7:
                 //server stream sendFirst response
@@ -300,14 +319,26 @@ export class TRpcStream {
                 break
             case 12:
                 //server stream send result
+                ++this.resultCount
                 if (this.callOpt.OnResult) {
                     res = this.resultType.decode(pkt.body)
                     this.callOpt.OnResult(res, pkt)
                 }
-                //todo response received
+                rpcCon.sendRpcPacket({
+                    cid: pkt.cid,
+                    cmd: pkt.cmd,
+                    no: pkt.no,
+                })
+
                 break
             case 13:
                 //server stream end
+                this.clearCall()
+
+                if (this.callOpt.OnFinished) {
+                    this.callOpt.OnFinished(pkt)
+                }
+                rpcCon.sendRpcPacket(pkt)
                 break
             case 44:
                 //rpc cancel response
@@ -387,7 +418,7 @@ export class TrpcCon {
         return true
     }
 
-    sendRpcPacket(pkt: yrpc.Ypacket): boolean {
+    sendRpcPacket(pkt: yrpc.IYpacket): boolean {
         let w = yrpc.Ypacket.encode(pkt)
         let rpcData = w.finish()
         return this.sendRpcData(rpcData)

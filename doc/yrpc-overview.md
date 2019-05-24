@@ -152,15 +152,22 @@ message Ypacket {
   - Ypacket.no=client发送的Ypacket.no
   - Ypacket.cid=client发送的cid
 - client端发送完数据后发送结束命令Ypacket.cmd=6
-- server端收到client.cmd=6后发送最终回应
-  - Ypacket.cmd=6
+- server端收到client.cmd=6后,先发送cmd=6确认收到包,然后结束相关调用接着发送结果数据
+  - Ypacket.cmd=12
   - Ypacket.body=Reply
+- client收到cmd=12时,需要回应收到数据包
+  - Ypacket.cmd=12
+  - Ypacket.cid跟第一次一样
+  - Ypacket.no=server端的Ypacket.no
+- server收到client对12的确认后发送最终回应
+  - Ypacket.cmd=13
+  - Ypacket.body=空
 
 
 ### 服务端流
 
-- 按照一次调用先发送调用请求,Ypacket.cmd=7
-- server端收到调用后进行处理
+- 按照一次调用先发送调用请求,Ypacket.cmd=7,Ypacket.body=Request
+- server端收到调用后进行处理,如果建立grpc成功,返回Ypacket.cmd=7确认调用建立成功
 - 如果有错误,则返回Ypacket.cmd=4
 - 正常返回数据时
   - Ypacket.cmd=12
@@ -173,10 +180,11 @@ message Ypacket {
   - Ypacket.no=server端的Ypacket.no
 - server端结束时发送命令Ypacket.cmd=13
   - Ypacket.body为空
+- client发送cmd=13确认收到结束指令
 
 ### 双向流
 
-- 按照一次调用先发送调用请求,Ypacket.cmd=8, server回应成功时Ypacket.cmd=8
+- 按照一次调用先发送调用请求,Ypacket.cmd=8, server回应成功时Ypacket.cmd=8,不成功时回应cmd=4
 - 从第二个数据包开始,Ypacket.cmd=5,Ypacket.ostr不需要填写method签名
 - Ypacket.no以1开始标识cmd=5的包,cmd=5的第一个包为整个双向流的第二个包
 - server收到后回应收到调用数据
@@ -193,11 +201,11 @@ message Ypacket {
   - Ypacket.cmd=12
   - Ypacket.cid跟第一次一样
   - Ypacket.no=server端的Ypacket.no
-- client端发送完数据后发送结束命令Ypacket.cmd=6
+- client端发送完数据后发送结束命令Ypacket.cmd=6,server端收到cmd=6后需要回应cmd=6表示收到结束调用,然后结束client stream send
 - server端发送最终回应(可以在client发送结束命令cmd=6前发送)
   - Ypacket.cmd=13
   - Ypacket.body=为空
-
+- client回应cmd=13通知server 收到调用结束包
 
 ### 取消rpc请求
 
