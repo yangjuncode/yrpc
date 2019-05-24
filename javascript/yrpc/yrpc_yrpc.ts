@@ -446,7 +446,7 @@ export class TrpcCon {
             pkt = yrpc.Ypacket.decode(rpcData)
 
         } catch (e) {
-            console.log("decode pkt err:", rpcData)
+            console.log("yrpc decode pkt err:", rpcData)
             return
         }
 
