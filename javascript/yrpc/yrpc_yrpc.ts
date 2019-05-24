@@ -370,6 +370,10 @@ export class TRpcStream {
 
 }
 
+export interface IOnPong {
+    (pongPkt: yrpc.Ypacket, unixTime?: yrpc.UnixTime): void
+}
+
 export class TrpcCon {
     Sid: Uint8Array = new Uint8Array()
     wsUrl: string = ''
@@ -379,6 +383,8 @@ export class TrpcCon {
     private wsReconnectTmrId: number = -1
     private cid: number = 0
     Meta: TYrpcMeta = new TYrpcMeta()
+
+    OnPong?: IOnPong
 
     OnceSubscribeList: Map<string, Function[]> = new Map<string, Function[]>()
     SubscribeList: Map<string, Function[]> = new Map<string, Function[]>()
@@ -502,6 +508,16 @@ export class TrpcCon {
                 break
             case 14:
                 //ping pong
+                let unixTime: yrpc.UnixTime | undefined
+                if (pkt.body.length > 0) {
+                    try {
+                        unixTime = yrpc.UnixTime.decode(pkt.body)
+                    } catch (e) {
+                    }
+                }
+                if (this.OnPong) {
+                    this.OnPong(pkt, unixTime)
+                }
                 break
 
         }
