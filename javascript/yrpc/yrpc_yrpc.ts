@@ -427,45 +427,77 @@ export class TrpcCon {
     onWsMsg(ev: MessageEvent): void {
         this.LastRecvTime = Date.now()
         let rpcData = new Uint8Array(ev.data)
-        let rpc = yrpc.Ypacket.decode(rpcData)
 
-        if (rpc.body.length > 0) {
-            let zipType = rpc.cmd & 0x000f0000
+        let pkt: yrpc.Ypacket
+        try {
+            pkt = yrpc.Ypacket.decode(rpcData)
+
+        } catch (e) {
+            console.log("decode pkt err:", rpcData)
+            return
+        }
+
+        if (pkt.body.length > 0) {
+            let zipType = pkt.cmd & 0x30000
             switch (zipType) {
-                case 0x00010000://lz4
+                case 0x10000://lz4
                     throw new Error('no lz4 support now')
                     break
-                case 0x00020000://zlib
-                    rpc.body = pako.inflate(rpc.body)
+                case 0x20000://zlib
+                    pkt.body = pako.inflate(pkt.body)
                     break
             }
 
         }
-        if (rpc.optbin.length > 0) {
-            let zipType = rpc.cmd & 0x00f00000
+        if (pkt.optbin.length > 0) {
+            let zipType = pkt.cmd & 0xC0000
             switch (zipType) {
-                case 0x00100000://lz4
+                case 0x40000://lz4
                     throw new Error('no lz4 support now')
                     break
-                case 0x00200000://zlib
-                    rpc.optbin = pako.inflate(rpc.optbin)
+                case 0x80000://zlib
+                    pkt.optbin = pako.inflate(pkt.optbin)
                     break
             }
         }
 
-        rpc.cmd = rpc.cmd & 0xffff
-        switch (rpc.cmd) {
-            // publish response
-            case 11:
-                break
-
-            // sub/unsub response
+        pkt.cmd = pkt.cmd & 0xffff
+        switch (pkt.cmd) {
+            case 1:
+            //unary call
+            case 3:
+            //client stream first
+            case 4:
+            //rpc err
+            case 5:
+            //cleint stream next
+            case 6:
+            //client stream finished
+            case 7:
+            //server stream first
+            case 8:
+            //bidi stream first
             case 12:
+            //server result
+            case 13:
+            //rpc end
+            case 44:
+                //rpc cancel
+                ypubsub.publishInt(pkt.cid, pkt)
+                break
+            case 9:
+                //nats publish response
+                break
+            case 10:
+                //nats pub/sub response
+                break
+            case 11:
+                //go nats msg
+                break
+            case 14:
+                //ping pong
                 break
 
-            // nats recv msg
-            case 13:
-                break
         }
 
     }
@@ -480,6 +512,7 @@ export class TrpcCon {
         this.wsReconnectTmrId = window.setInterval(() => {
             if (this.isWsConnected()) {
                 clearInterval(this.wsReconnectTmrId)
+                this.wsReconnectTmrId = -1
                 return
             }
             this.initWsCon(this.wsUrl)
