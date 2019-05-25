@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sync"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -206,4 +207,138 @@ func getGrpcConn(grpcAddr string) (conn *grpc.ClientConn, err error) {
 	}
 
 	return grpConn, nil
+}
+
+type TyrpcStream struct {
+	GrpcConn   *grpc.ClientConn
+	GrpcStream grpc.ClientStream
+
+	HasCancel    bool
+	CancelFn     context.CancelFunc
+	HasCloseSent bool
+	Cid          uint32
+	RpcType      uint32
+
+	WsConn *websocket.Conn
+
+	manager *TrpcStreamManager
+}
+
+func NewRpcStreamCall(conn *websocket.Conn, pkt *yrpc.Ypacket) (stream *TyrpcStream) {
+	grpcCon, err := getGrpcConn(*grpcAddr)
+
+	if err != nil {
+		fmt.Println("make grpc con err:", err, pkt.Optstr)
+		responseRpcErr(conn, pkt, err)
+		return nil
+	}
+
+	sreamDesc := &grpc.StreamDesc{
+		ClientStreams: pkt.Cmd == 3 || pkt.Cmd == 8,
+		ServerStreams: pkt.Cmd == 7 || pkt.Cmd == 8,
+	}
+	ctx, cancelFn := context.WithCancel(context.Background())
+	rpcStream, err := grpc.NewClientStream(ctx, sreamDesc, grpcCon, pkt.Optstr)
+	if err != nil {
+		fmt.Println("make rpc stream err:", err, pkt.Optstr)
+		responseRpcErr(conn, pkt, err)
+		grpcCon.Close()
+		return nil
+	}
+
+	stream = &TyrpcStream{
+		RpcType:    pkt.Cmd,
+		Cid:        pkt.Cid,
+		WsConn:     conn,
+		GrpcConn:   grpcCon,
+		GrpcStream: rpcStream,
+		CancelFn:   cancelFn,
+	}
+
+	err = stream.GrpcStream.SendMsgForward(pkt.Body)
+	if err != nil {
+		fmt.Println("make rpc stream err:", err, pkt.Optstr)
+		responseRpcErr(conn, pkt, err)
+		stream.CancelFn()
+		grpcCon.Close()
+		return nil
+	}
+
+	stream.RpcCallEstablished(pkt)
+
+	if stream.RpcType == 7 {
+		//server stream
+		stream.CloseSend(pkt)
+	}
+
+	return stream
+}
+func (this *TyrpcStream) RpcCallEstablished(pkt *yrpc.Ypacket) {
+	resPkt := &yrpc.Ypacket{
+		Cid: pkt.Cid,
+		Cmd: pkt.Cmd,
+		No:  pkt.No,
+	}
+	writeWebsocketPacket(this.WsConn, resPkt)
+}
+func (this *TyrpcStream) Cancel() {
+	if this.HasCancel {
+		return
+	}
+	this.CancelFn()
+	this.HasCancel = true
+}
+func (this *TyrpcStream) CloseSend(pkt *yrpc.Ypacket) {
+	if this.HasCloseSent {
+		return
+	}
+	this.GrpcStream.CloseSend()
+}
+func (this *TyrpcStream) GotPacket(pkt *yrpc.Ypacket) {
+	switch pkt.Cmd {
+	case 4:
+		//cancel
+		this.Cancel()
+		this.manager.DestroyRpcStream(this)
+	case 5:
+		this.SendNext(pkt)
+	case 6:
+		this.CloseSend(pkt)
+	}
+}
+func (this *TyrpcStream) Recv() {
+
+}
+func (this *TyrpcStream) SendNext(pkt *yrpc.Ypacket) (err error) {
+	if this.HasCloseSent {
+		return
+	}
+	err = this.GrpcStream.SendMsgForward(pkt.Body)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type TrpcStreamManager struct {
+	Streams sync.Map
+}
+
+func TrpcStreamManagerNew() *TrpcStreamManager {
+	return &TrpcStreamManager{
+		Streams: sync.Map{},
+	}
+}
+
+func (this *TrpcStreamManager) NewRpcStream(stream *TyrpcStream) {
+	oldS, exists := this.Streams.Load(stream.Cid)
+	if exists {
+		oldstream := oldS.(*TyrpcStream)
+		oldstream.Cancel()
+	}
+	this.Streams.Store(stream.Cid, stream)
+}
+func (this *TrpcStreamManager) DestroyRpcStream(stream *TyrpcStream) {
+	this.Streams.Delete(stream.Cid)
 }
