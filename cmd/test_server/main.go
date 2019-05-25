@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"sync"
@@ -74,6 +75,8 @@ func yrpcWebsocket(w http.ResponseWriter, r *http.Request) {
 
 func processingOneWebsocket(conn *websocket.Conn) {
 	log.Info().Str("ip", conn.RemoteAddr().String()).Msg("got one ws connected")
+
+	rpcManager := TrpcStreamManagerNew()
 	for {
 		//conn.SetReadDeadline(time.Now().Add(time.Minute * 10))
 
@@ -84,9 +87,9 @@ func processingOneWebsocket(conn *websocket.Conn) {
 			conn.Close()
 			return
 		}
-		ypacket := &yrpc.Ypacket{}
+		pkt := &yrpc.Ypacket{}
 
-		err = ypacket.Unmarshal(pktData)
+		err = pkt.Unmarshal(pktData)
 
 		if err != nil {
 			log.Error().Err(err).Msg("ypacket decode err")
@@ -94,17 +97,25 @@ func processingOneWebsocket(conn *websocket.Conn) {
 			return
 		}
 
-		switch ypacket.Cmd {
+		switch pkt.Cmd {
 		case 1:
-			yrpcUnaryCall(conn, ypacket)
+			yrpcUnaryCall(conn, pkt)
 		case 2:
-			yrpcNocareCall(conn, ypacket)
+			yrpcNocareCall(conn, pkt)
 		case 3:
+		case 7:
+		case 8:
+			stream := NewRpcStreamCall(conn, pkt)
+			if stream != nil {
+				rpcManager.NewRpcStream(stream)
+			}
 		case 4:
 		case 5:
 		case 6:
-		case 7:
-		case 8:
+			stream := rpcManager.GetRpcStream(pkt)
+			if stream != nil {
+				stream.GotPacket(pkt)
+			}
 		case 9:
 		case 10:
 		case 11:
@@ -112,7 +123,7 @@ func processingOneWebsocket(conn *websocket.Conn) {
 		case 12:
 		case 13:
 		case 14:
-			yrpcPing(conn, ypacket)
+			yrpcPing(conn, pkt)
 		}
 	}
 }
@@ -218,6 +229,9 @@ type TyrpcStream struct {
 	HasCloseSent bool
 	Cid          uint32
 	RpcType      uint32
+	Api          string
+
+	responseNo uint32
 
 	WsConn *websocket.Conn
 
@@ -253,6 +267,7 @@ func NewRpcStreamCall(conn *websocket.Conn, pkt *yrpc.Ypacket) (stream *TyrpcStr
 		GrpcConn:   grpcCon,
 		GrpcStream: rpcStream,
 		CancelFn:   cancelFn,
+		Api:        pkt.Optstr,
 	}
 
 	err = stream.GrpcStream.SendMsgForward(pkt.Body)
@@ -270,6 +285,8 @@ func NewRpcStreamCall(conn *websocket.Conn, pkt *yrpc.Ypacket) (stream *TyrpcStr
 		//server stream
 		stream.CloseSend(pkt)
 	}
+
+	go stream.Recv()
 
 	return stream
 }
@@ -289,12 +306,15 @@ func (this *TyrpcStream) Cancel() {
 	this.HasCancel = true
 }
 func (this *TyrpcStream) CloseSend(pkt *yrpc.Ypacket) {
-	if this.HasCloseSent {
+	if this.HasCloseSent || this.HasCancel {
 		return
 	}
 	this.GrpcStream.CloseSend()
 }
 func (this *TyrpcStream) GotPacket(pkt *yrpc.Ypacket) {
+	if this.HasCancel {
+		return
+	}
 	switch pkt.Cmd {
 	case 4:
 		//cancel
@@ -307,7 +327,37 @@ func (this *TyrpcStream) GotPacket(pkt *yrpc.Ypacket) {
 	}
 }
 func (this *TyrpcStream) Recv() {
+	for {
+		msgB, err := this.GrpcStream.RecvMsgForward()
+		if err == io.EOF {
+			this.RpcEnd()
+			return
+		}
+		if err != nil {
+			responseRpcErr(this.WsConn, &yrpc.Ypacket{
+				Cid: this.Cid,
+			}, err)
 
+			this.manager.DestroyRpcStream(this)
+			return
+		}
+
+		err = writeWebsocketPacket(this.WsConn, &yrpc.Ypacket{
+			Cmd:  12,
+			Cid:  this.Cid,
+			No:   this.GetResponseNo(),
+			Body: msgB,
+		})
+		if err != nil {
+			fmt.Println("send ws response 12 err:", this.Api)
+		}
+	}
+}
+func (this *TyrpcStream) GetResponseNo() uint32 {
+
+}
+func (this *TyrpcStream) RpcEnd() {
+	//todo send rpc end
 }
 func (this *TyrpcStream) SendNext(pkt *yrpc.Ypacket) (err error) {
 	if this.HasCloseSent {
@@ -330,7 +380,14 @@ func TrpcStreamManagerNew() *TrpcStreamManager {
 		Streams: sync.Map{},
 	}
 }
+func (this *TrpcStreamManager) GetRpcStream(pkt *yrpc.Ypacket) (stream *TyrpcStream) {
+	s, exists := this.Streams.Load(pkt.Cid)
+	if !exists {
+		return nil
+	}
 
+	return s.(*TyrpcStream)
+}
 func (this *TrpcStreamManager) NewRpcStream(stream *TyrpcStream) {
 	oldS, exists := this.Streams.Load(stream.Cid)
 	if exists {
