@@ -3,6 +3,7 @@ import pako from 'pako'
 import {addCallback2Map, delCallbackFromMap, isCallbackInMap} from './mapUtil'
 import ypubsub from './ypubsub'
 import {yrpc} from './yrpc'
+import {Writer} from "protobufjs";
 
 export interface IResult {
     //result is  the result of grpc return
@@ -155,6 +156,7 @@ export class TRpcStream {
     api: string
     apiVerion: number
     cid: number
+    reqType: any
     resultType: any
     resultCount: number = 0
     rpcType: number
@@ -168,9 +170,10 @@ export class TRpcStream {
 
     private sendOkCallbacks: Map<number, IPacketSendOK>
 
-    constructor(api: string, v: number, resultType: any, rpcType: number, callOpt?: TCallOption) {
+    constructor(api: string, v: number, reqType: any, resultType: any, rpcType: number, callOpt?: TCallOption) {
         this.api = api
         this.apiVerion = v
+        this.reqType = reqType
         this.resultType = resultType
         this.rpcType = rpcType
         this.cid = rpcCon.NewCid()
@@ -199,7 +202,9 @@ export class TRpcStream {
 
 
     //return the no of pkt,if not send to socket, return <0
-    sendFirst(reqData: Uint8Array): number {
+    sendFirst(reqPkt: any): number {
+        let w: Writer = this.reqType.encode(reqPkt)
+        let reqData = w.finish()
         let pkt = new yrpc.Ypacket()
         pkt.cmd = this.rpcType
         pkt.body = reqData
@@ -222,10 +227,12 @@ export class TRpcStream {
     }
 
     //return rpc no,if <0: not send to socket
-    sendNext(reqData: Uint8Array, sendCallback?: IPacketSendOK): number {
+    sendNext(reqPkt: any, sendCallback?: IPacketSendOK): number {
         if (!this.firstHasSent2Socket) {
             return -9
         }
+        let w: Writer = this.reqType.encode(reqPkt)
+        let reqData = w.finish()
         let pkt = new yrpc.Ypacket()
         pkt.cmd = 5
         pkt.body = reqData
