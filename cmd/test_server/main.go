@@ -356,7 +356,9 @@ func (this *TyrpcStream) Recv() {
 	}
 }
 func (this *TyrpcStream) GetResponseNo() uint32 {
-
+	r := this.responseNo
+	this.responseNo++
+	return r
 }
 func (this *TyrpcStream) RpcEnd() {
 	pkt := &yrpc.Ypacket{
@@ -365,7 +367,6 @@ func (this *TyrpcStream) RpcEnd() {
 	}
 
 	writeWebsocketPacket(this.WsConn, pkt)
-	//todo send rpc end
 }
 func (this *TyrpcStream) SendNext(pkt *yrpc.Ypacket) (err error) {
 	if this.HasCloseSent {
