@@ -177,7 +177,7 @@ export class TRpcStream {
         this.resultType = resultType
         this.rpcType = rpcType
         this.cid = rpcCon.NewCid()
-        ypubsub.subscribeInt(this.cid, this.onRpcPacket)
+        ypubsub.subscribeInt(this.cid, this.onRpcPacket.bind(this))
 
         if (!callOpt) {
             callOpt = new TCallOption()
@@ -407,10 +407,10 @@ export class TrpcCon {
         this.wsCon.binaryType = "arraybuffer"
         this.wsUrl = url
 
-        this.wsCon.onmessage = this._onWsMsg
-        this.wsCon.onclose = this._onWsClose
-        this.wsCon.onerror = this._onWsErr
-        this.wsCon.onopen = this._onWsOpen
+        this.wsCon.onmessage = this._onWsMsg.bind(this)
+        this.wsCon.onclose = this._onWsClose.bind(this)
+        this.wsCon.onerror = this._onWsErr.bind(this)
+        this.wsCon.onopen = this._onWsOpen.bind(this)
 
     }
 
