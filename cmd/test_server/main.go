@@ -324,6 +324,8 @@ func (this *TyrpcStream) GotPacket(pkt *yrpc.Ypacket) {
 		this.SendNext(pkt)
 	case 6:
 		this.CloseSend(pkt)
+	case 13:
+		this.manager.DestroyRpcStream(this)
 	}
 }
 func (this *TyrpcStream) Recv() {
@@ -357,6 +359,12 @@ func (this *TyrpcStream) GetResponseNo() uint32 {
 
 }
 func (this *TyrpcStream) RpcEnd() {
+	pkt := &yrpc.Ypacket{
+		Cmd: 13,
+		Cid: this.Cid,
+	}
+
+	writeWebsocketPacket(this.WsConn, pkt)
 	//todo send rpc end
 }
 func (this *TyrpcStream) SendNext(pkt *yrpc.Ypacket) (err error) {
