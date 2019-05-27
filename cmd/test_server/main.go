@@ -97,20 +97,26 @@ func processingOneWebsocket(conn *websocket.Conn) {
 			return
 		}
 
+		fmt.Println("got pkt:", pkt)
+
 		switch pkt.Cmd {
 		case 1:
 			yrpcUnaryCall(conn, pkt)
 		case 2:
 			yrpcNocareCall(conn, pkt)
 		case 3:
+			fallthrough
 		case 7:
+			fallthrough
 		case 8:
 			stream := NewRpcStreamCall(conn, pkt)
 			if stream != nil {
 				rpcManager.NewRpcStream(stream)
 			}
 		case 4:
+			fallthrough
 		case 5:
+			fallthrough
 		case 6:
 			stream := rpcManager.GetRpcStream(pkt)
 			if stream != nil {
@@ -159,6 +165,8 @@ func writeWebsocketData(conn *websocket.Conn, data []byte) (err error) {
 func writeWebsocketPacket(conn *websocket.Conn, pkt *yrpc.Ypacket) (err error) {
 	data, _ := pkt.Marshal()
 	err = conn.WriteMessage(websocket.BinaryMessage, data)
+	fmt.Println("sent pkt:", err, conn.RemoteAddr().String(), pkt)
+
 	return
 }
 
@@ -329,6 +337,7 @@ func (this *TyrpcStream) GotPacket(pkt *yrpc.Ypacket) {
 	}
 }
 func (this *TyrpcStream) Recv() {
+
 	for {
 		msgB, err := this.GrpcStream.RecvMsgForward()
 		if err == io.EOF {
@@ -344,12 +353,13 @@ func (this *TyrpcStream) Recv() {
 			return
 		}
 
-		err = writeWebsocketPacket(this.WsConn, &yrpc.Ypacket{
+		resPkt := &yrpc.Ypacket{
 			Cmd:  12,
 			Cid:  this.Cid,
 			No:   this.GetResponseNo(),
 			Body: msgB,
-		})
+		}
+		err = writeWebsocketPacket(this.WsConn, resPkt)
 		if err != nil {
 			fmt.Println("send ws response 12 err:", this.Api)
 		}
@@ -403,6 +413,7 @@ func (this *TrpcStreamManager) NewRpcStream(stream *TyrpcStream) {
 		oldstream := oldS.(*TyrpcStream)
 		oldstream.Cancel()
 	}
+	stream.manager = this
 	this.Streams.Store(stream.Cid, stream)
 }
 func (this *TrpcStreamManager) DestroyRpcStream(stream *TyrpcStream) {
