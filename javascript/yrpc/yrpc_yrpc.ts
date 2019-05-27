@@ -168,7 +168,7 @@ export class TRpcStream {
     SendFirstOK: boolean = false
     firstHasSent2Socket: boolean = false
 
-    private sendOkCallbacks: Map<number, IPacketSendOK>
+    private sendOkCallbacks: Map<number, IPacketSendOK> = new Map<number, IPacketSendOK>()
 
     constructor(api: string, v: number, reqType: any, resultType: any, rpcType: number, callOpt?: TCallOption) {
         this.api = api
