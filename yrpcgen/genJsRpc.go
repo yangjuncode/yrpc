@@ -75,8 +75,9 @@ func jsGenRpc(request *plugin.CodeGeneratorRequest) (genFiles []*plugin.CodeGene
 		fileName := ExtractFilename(fd.GetName())
 
 		importManager := NewjsrpcImportManager(fileName, pkgName)
-		importManager.AddRawImportType("{Writer}", "protobufjs")
+		//importManager.AddRawImportType("{Writer}", "protobufjs")
 		importManager.AddRawImportType("{rpcCon}", "../yrpc/yrpc_yrpc")
+		importManager.AddRawImportType("{ProtoEncode}", "../yrpc/yrpc_yrpc")
 		importManager.AddRawImportType("{TCallOption}", "../yrpc/yrpc_yrpc")
 
 		fileRpcPostfix := ""

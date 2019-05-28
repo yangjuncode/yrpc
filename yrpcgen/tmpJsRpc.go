@@ -7,8 +7,8 @@ export class {{$className}} {
 public static readonly ver={{$srvVersion}}
 {{ range $no,$rpc := .unaryNocareCalls }}
  public static {{$rpc.MethodName}}(req:{{$rpc.InputTypeInterface}}):void{
-	let w:Writer={{$rpc.InputType}}.encode(req)
-	let reqData=w.finish()
+	let reqData = ProtoEncode({{$rpc.InputType}}, req)
+	if (!reqData) { return }
 	rpcCon.NocareCall(reqData,'{{$rpc.Api}}',{{$rpc.Version}})
 	
 }
@@ -16,8 +16,11 @@ public static readonly ver={{$srvVersion}}
 
 {{ range $no,$rpc := .unaryCalls }}
  public static {{$rpc.MethodName}}(req:{{$rpc.InputTypeInterface}},callOpt?:TCallOption):void{
-	let w:Writer={{$rpc.InputType}}.encode(req)
-	let reqData=w.finish()
+	let reqData = ProtoEncode({{$rpc.InputType}}, req)
+	if (!reqData) {
+		if(callOpt){ callOpt.OnLocalErr('encode err') }
+		return 
+	}
 	rpcCon.UnaryCall(reqData,'{{$rpc.Api}}',{{$rpc.Version}},{{$rpc.OutputType}},callOpt)
 	
 }

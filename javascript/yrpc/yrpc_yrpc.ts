@@ -3,7 +3,30 @@ import pako from 'pako'
 import {addCallback2Map, delCallbackFromMap, isCallbackInMap} from './mapUtil'
 import ypubsub from './ypubsub'
 import {yrpc} from './yrpc'
-import {Writer} from "protobufjs";
+
+export function ProtoEncode(protoType: any, protoPkt: any): Uint8Array | undefined {
+    try {
+        let data = protoType.encode(protoPkt)
+
+        return data
+
+    } catch (e) {
+        console.log("proto encode err:", e, protoType)
+        return undefined
+    }
+}
+
+export function ProtoDecode(protoType: any, protoData: Uint8Array): any | undefined {
+    try {
+        let pkt = protoType.decode(protoData)
+
+        return pkt
+
+    } catch (e) {
+        console.log("proto decode err:", e, protoType)
+        return undefined
+    }
+}
 
 export interface IResult {
     //result is  the result of grpc return
@@ -60,6 +83,12 @@ export class TCallOption implements ICallOption {
         options && Object.assign(this, options)
         if (!this.timeout || this.timeout <= 0) {
             this.timeout = 60
+        }
+    }
+
+    LocalErr(e: any) {
+        if (this.OnLocalErr) {
+            this.OnLocalErr(e)
         }
     }
 }
@@ -203,8 +232,11 @@ export class TRpcStream {
 
     //return the no of pkt,if not send to socket, return <0
     sendFirst(reqPkt: any): number {
-        let w: Writer = this.reqType.encode(reqPkt)
-        let reqData = w.finish()
+        let reqData = ProtoEncode(this.reqType, reqPkt)
+        if (!reqData) {
+            //encode pkt err
+            return -100
+        }
         let pkt = new yrpc.Ypacket()
         pkt.cmd = this.rpcType
         pkt.body = reqData
@@ -231,8 +263,11 @@ export class TRpcStream {
         if (!this.firstHasSent2Socket) {
             return -9
         }
-        let w: Writer = this.reqType.encode(reqPkt)
-        let reqData = w.finish()
+        let reqData = ProtoEncode(this.reqType, reqPkt)
+        if (!reqData) {
+            //encode pkt err
+            return -100
+        }
         let pkt = new yrpc.Ypacket()
         pkt.cmd = 5
         pkt.body = reqData
@@ -334,8 +369,14 @@ export class TRpcStream {
                 //server stream send result
                 ++this.resultCount
                 if (this.callOpt.OnResult) {
-                    res = this.resultType.decode(pkt.body)
-                    this.callOpt.OnResult(res, pkt)
+                    res = ProtoDecode(this.resultType, pkt.body)
+                    if (res) {
+                        this.callOpt.OnResult(res, pkt)
+
+                    } else {
+                        //decode err
+                        console.log("decode result err:", this.api, pkt)
+                    }
                 }
                 rpcCon.sendRpcPacket({
                     cid: pkt.cid,
@@ -439,8 +480,11 @@ export class TrpcCon {
     }
 
     sendRpcPacket(pkt: yrpc.IYpacket): boolean {
-        let w = yrpc.Ypacket.encode(pkt)
-        let rpcData = w.finish()
+        let rpcData = ProtoEncode(yrpc.Ypacket, pkt)
+        if (!rpcData) {
+            //encode pkt err
+            return false
+        }
         return this.sendRpcData(rpcData)
     }
 
@@ -448,12 +492,10 @@ export class TrpcCon {
         this.LastRecvTime = Date.now()
         let rpcData = new Uint8Array(ev.data)
 
-        let pkt: yrpc.Ypacket
-        try {
-            pkt = yrpc.Ypacket.decode(rpcData)
 
-        } catch (e) {
-            console.log("yrpc decode pkt err:", rpcData)
+        let pkt = ProtoDecode(yrpc.Ypacket, rpcData)
+        if (!pkt) {
+            console.log("decode rpcData err:", rpcData)
             return
         }
 
@@ -729,8 +771,8 @@ export class TrpcCon {
         ypubsub.subscribeOnceInt(pkt.cid, function (resPkt: yrpc.Ypacket) {
             switch (resPkt.cmd) {
                 case 1:
-                    let res = resultType.decode(resPkt.body)
-                    if (callOpt.OnResult) {
+                    let res = ProtoDecode(resultType, resPkt.body)
+                    if (res && callOpt.OnResult) {
                         callOpt.OnResult(res, resPkt)
                     }
                     break
