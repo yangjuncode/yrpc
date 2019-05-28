@@ -37,10 +37,6 @@ func (this *TrpcItem) InputTypeInterface() string {
 
 func (this *TrpcItem) Api() string {
 	api := "/" + this.PkgName + "." + this.ServiceName + "/" + this.MethodName
-	if this.Version > 0 {
-		api += "/v"
-		api += strconv.Itoa(this.Version)
-	}
 
 	return api
 }
